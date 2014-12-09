@@ -5,7 +5,7 @@ The last stable analysis base used is **2.0.18**. To install,
 ```bash
 mkdir myRootCore && cd myRootCore
 rcSetup Base,2.0.18
-git clone https://github.com/kratsg/xAOD_Dumper.git
+git clone https://github.com/kratsg/xAODDumper.git
 rc find_packages
 rc compile
 dumpSG.py <input file> *kwargs
