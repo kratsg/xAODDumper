@@ -49,7 +49,7 @@ except:
 import ROOT
 
 def inspect_tree(t):
-  xAOD_Objects = defaultdict(lambda: {'prop': [], 'attr': [], 'type': []})  # list of properties and methods given Container Name
+  xAOD_Objects = defaultdict(lambda: {'prop': [], 'attr': [], 'type': None, 'has_aux': False})  # list of properties and methods given Container Name
 
   '''
   filter based on the 4 elements:
@@ -63,7 +63,7 @@ def inspect_tree(t):
     - Container Attribute: this comes in the form like `AntiKt10LCTopoAuxDyn.Tau1`
       - this contains vector<type> type, which is filtered to become `type` via xAOD_Type_Name
   '''
-  xAOD_Container_Name = re.compile('(.*)(?<!\.)$')
+  xAOD_Container_Name = re.compile('^([^:]*)(?<!\.)$')
   xAOD_AuxContainer_Name = re.compile('(.*)Aux\.$')
   xAOD_Container_Prop = re.compile('(.*)Aux\.([^:]+)$')
   xAOD_Container_Attr = re.compile('(.*)AuxDyn\.([^:]+)$')
@@ -91,6 +91,7 @@ def inspect_tree(t):
     if m_aux_name:
       container, = m_aux_name.groups()
       xAOD_Objects[container]['type'] = elType
+      xAOD_Objects[container]['has_aux'] = True  # we found the aux for it
     # set the property
     elif m_cont_prop:
       container, property = m_cont_prop.groups()
@@ -104,14 +105,21 @@ def inspect_tree(t):
         xAOD_Objects[container]['prop'].append({'name': attribute, 'type': elType})
       else:
         xAOD_Objects[container]['attr'].append({'name': attribute, 'type': elType})
+    elif m_cont_name:
+      container, = m_cont_name.groups()
+      xAOD_Objects[container]['type'] = xAOD_Objects[container]['type'] or elType  # initialize with defaults if not set already
+ 
   return xAOD_Objects
 
 def filter_xAOD_objects(xAOD_Objects, args):
-  filtered_xAOD_Objects = copy.copy(xAOD_Objects) #  copy
   p_container_name = re.compile(fnmatch.translate(args.container_name_regex))
-  p_container_type = re.compile(fnmatch.translate('xAOD::%s' % args.container_type_regex))
+  if args.has_aux:
+    p_container_type = re.compile(fnmatch.translate('xAOD::%s' % args.container_type_regex))
+  else:
+    p_container_type = re.compile(fnmatch.translate(args.container_type_regex))
+
   # Python Level: EXPERT MODE
-  filtered_xAOD_Objects = {k:{prop:val for (prop, val) in v.iteritems() if (args.list_properties and prop=='prop') or (args.list_attributes and prop=='attr') or prop=='type'} for (k,v) in filtered_xAOD_Objects.iteritems() if p_container_name.match(k) and p_container_type.match(v['type'])}
+  filtered_xAOD_Objects = {k:{prop:val for prop, val in v.iteritems() if (args.list_properties and prop=='prop') or (args.list_attributes and prop=='attr') or prop in ['type','has_aux']} for (k,v) in xAOD_Objects.iteritems() if p_container_name.match(k) and p_container_type.match(v['type']) and (not args.has_aux or v['has_aux']) }
   return filtered_xAOD_Objects
 
 def dump_pretty(xAOD_Objects, f):
@@ -200,6 +208,10 @@ if __name__ == "__main__":
                       choices=['json','pickle','pretty'],
                       help='Specify the output format.',
                       default='pretty')
+  parser.add_argument('--has_aux',
+                      dest='has_aux',
+                      action='store_true',
+                      help='Enable to only include containers which have an auxillary container. By default, it includes all containers it can find.')
 
   # additional verbosity arguments (flags)
   parser.add_argument('--prop',
