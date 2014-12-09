@@ -16,10 +16,9 @@ dumpSG.py <input file> *kwargs
 
 ### [dumpSG.py](scripts/dumpSG.py)
 ```
-$ dumpSG.py --help
 usage: dumpSG.py [-h] [--tree TREE_NAME] [-o OUTPUT_FILENAME]
                  [-t CONTAINER_TYPE_REGEX] [-c CONTAINER_NAME_REGEX]
-                 [-f {json,pickle,pretty}] [--prop] [--attr]
+                 [-f {json,pickle,pretty}] [--has_aux] [--prop] [--attr]
                  [--filterProps PROPERTY_NAME_REGEX]
                  [--filterAttrs ATTRIBUTE_NAME_REGEX] [-i]
                  input_filename
@@ -48,6 +47,9 @@ optional arguments:
                         matching.
   -f {json,pickle,pretty}, --format {json,pickle,pretty}
                         Specify the output format.
+  --has_aux             Enable to only include containers which have an
+                        auxillary container. By default, it includes all
+                        containers it can find.
   --prop                Enable to print properties of container. By default,
                         it only prints the xAOD::ContainerType and containers
                         for that given type. This is like an increased
