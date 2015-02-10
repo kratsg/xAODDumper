@@ -44,13 +44,22 @@ try:
 except:
   import pickle
 
+# used to redirect ROOT output
+#   see http://stackoverflow.com/questions/21541238/get-ipython-doesnt-work-in-a-startup-script-for-ipython-ipython-notebook
+import tempfile
+'''
+  with tempfile.NamedTemporaryFile() as tmpFile:
+    ROOT.gSystem.RedirectOutput(tmpFile.name, "w")
+
+    # execute code here  
+
+    ROOT.gROOT.ProcessLine("gSystem->RedirectOutput(0);")
+'''
 
 # Set up ROOT
 import ROOT
 
 def inspect_tree(t):
-  xAOD_Objects = defaultdict(lambda: {'prop': [], 'attr': [], 'type': None, 'has_aux': False})  # list of properties and methods given Container Name
-
   '''
   filter based on the 4 elements:
     - Container Name: this comes in the form like `AntiKt10LCTopo`
@@ -63,6 +72,11 @@ def inspect_tree(t):
     - Container Attribute: this comes in the form like `AntiKt10LCTopoAuxDyn.Tau1`
       - this contains vector<type> type, which is filtered to become `type` via xAOD_Type_Name
   '''
+
+  # list of properties and methods given Container Name
+  xAOD_Objects = defaultdict(lambda: {'prop': [], 'attr': [], 'type': None, 'has_aux': False, 'rootname': None})  
+
+  # lots of regex to pass things around and figure out structure
   xAOD_Container_Name = re.compile('^([^:]*)(?<!\.)$')
   xAOD_AuxContainer_Name = re.compile('(.*)Aux\.$')
   xAOD_Container_Prop = re.compile('(.*)Aux\.([^:]+)$')
@@ -92,24 +106,70 @@ def inspect_tree(t):
       container, = m_aux_name.groups()
       xAOD_Objects[container]['type'] = elType
       xAOD_Objects[container]['has_aux'] = True  # we found the aux for it
+      xAOD_Objects[container]['rootname'] = elName
     # set the property
     elif m_cont_prop:
       container, property = m_cont_prop.groups()
-      xAOD_Objects[container]['prop'].append({'name': property, 'type': elType})
+      xAOD_Objects[container]['prop'].append({'name': property, 'type': elType, 'rootname': elName})
     # set the attribute
     elif m_cont_attr:
       container, attribute = m_cont_attr.groups()
       if 'btagging' in attribute.lower():
         attribute = attribute.replace('Link','')
         elType = xAOD_Grab_Inner_Type.search(elType).groups()[0] + ' *'
-        xAOD_Objects[container]['prop'].append({'name': attribute, 'type': elType})
+        xAOD_Objects[container]['prop'].append({'name': attribute, 'type': elType, 'rootname': elName})
       else:
-        xAOD_Objects[container]['attr'].append({'name': attribute, 'type': elType})
+        xAOD_Objects[container]['attr'].append({'name': attribute, 'type': elType, 'rootname': elName})
     elif m_cont_name:
+      # initialize with defaults if not set already
       container, = m_cont_name.groups()
-      xAOD_Objects[container]['type'] = xAOD_Objects[container]['type'] or elType  # initialize with defaults if not set already
+      xAOD_Objects[container]['type'] = xAOD_Objects[container]['type'] or elType
+      xAOD_Objects[container]['rootname'] = xAOD_Objects[container]['rootname'] or elName
  
   return xAOD_Objects
+
+def save_plot(item, container, width=700, height=500, formats=['png'], directory="xAODDumper_report"):
+  pathToImage = "{0}.png".format(os.path.join(directory, item['name']))
+  c = ROOT.TCanvas(item['name'], item['name'], 200, 10, width, height)
+  t.Draw(item['rootname'])
+  c.SaveAs(pathToImage)
+
+  # get histogram drawn and grab details
+  htemp = c.GetPrimitive("htemp")
+
+  # if it didn't draw a histogram, there was an error drawing it
+  if htemp == None:
+    entries, mean, rms =  0, 0.0, 0.0
+    drawable = False
+  else:
+    entries, mean, rms =  htemp.GetEntries(), htemp.GetMean(), htemp.GetRMS()
+    drawable = True
+
+  item['entries'] = entries
+  item['mean'] = mean
+  item['rms'] = rms
+  item['drawable'] = drawable
+
+  if drawable:
+    # let the user know that this has RMS=0 and may be of interest
+    if rms == 0:
+      print "{0}/{1} might be problematic\n\tpath:\t\t{2}\n\tmean:\t\t{3}\n\trms:\t\t{4}\n\tentries:\t{5}".format(container, item['name'], item['rootname'], item['mean'], item['rms'], item['entries'])
+  else:
+    print "{0}/{1} couldn't be drawn\n\tpath:\t\t{2}".format(container, item['name'], item['rootname'])
+    # couldn't draw, remove it
+    os.remove(pathToImage)
+
+  del c
+
+def make_report(t, xAOD_Objects, directory="xAODDumper_report"):
+  for container, items in xAOD_Objects.iteritems():
+    print container
+    sub_directory = os.path.join(directory,container)
+    if not os.path.exists(sub_directory):
+      os.makedirs(sub_directory)
+    for prop in items.get('prop', []):
+      save_plot(prop, container, directory=sub_directory)
+  return True
 
 def filter_xAOD_objects(xAOD_Objects, args):
   p_container_name = re.compile(fnmatch.translate(args.container_name_regex))
@@ -119,7 +179,7 @@ def filter_xAOD_objects(xAOD_Objects, args):
     p_container_type = re.compile(fnmatch.translate(args.container_type_regex))
 
   # Python Level: EXPERT MODE
-  filtered_xAOD_Objects = {k:{prop:val for prop, val in v.iteritems() if (args.list_properties and prop=='prop') or (args.list_attributes and prop=='attr') or prop in ['type','has_aux']} for (k,v) in xAOD_Objects.iteritems() if p_container_name.match(k) and p_container_type.match(v['type']) and (not args.has_aux or v['has_aux']) }
+  filtered_xAOD_Objects = {k:{prop:val for prop, val in v.iteritems() if (args.list_properties and prop=='prop') or (args.list_attributes and prop=='attr') or prop in ['type','has_aux','rootname']} for (k,v) in xAOD_Objects.iteritems() if p_container_name.match(k) and p_container_type.match(v['type']) and (not args.has_aux or v['has_aux']) }
   return filtered_xAOD_Objects
 
 def dump_pretty(xAOD_Objects, f):
@@ -222,6 +282,10 @@ if __name__ == "__main__":
                       dest='list_attributes',
                       action='store_true',
                       help='Enable to print attributes of container. By default, it only prints the xAOD::ContainerType and containers for that given type. This is like an increased verbosity option for container attributes.')
+  parser.add_argument('--report',
+                      dest='make_report',
+                      action='store_true',
+                      help='Enable to also create a directory containing plots and generate additional reporting information/statistics. By default, this is turned off as it can be potentially slow. The output directory containing the plots will be named `xAODDumper_Report`.')
 
   # additional selections on properties and attributes
   parser.add_argument('--filterProps'  ,
@@ -245,31 +309,37 @@ if __name__ == "__main__":
   # parse the arguments, throw errors if missing any
   args = parser.parse_args()
   if args.property_name_regex != '*' or args.attribute_name_regex != '*' or args.interactive:
-    print "The following arguments have not been implemented yet: --filterProps, --filterAttrs, --interactive. Sorry for the inconvenience. We will ignore these in the script."
+    parser.error("The following arguments have not been implemented yet: --filterProps, --filterAttrs, --interactive. Sorry for the inconvenience.")
 
-  # load the xAOD EDM from RootCore and initialize
-  ROOT.gROOT.Macro('$ROOTCOREDIR/scripts/load_packages.C')
-  ROOT.xAOD.Init()
-
-  # THIS IS FOR GIORDON TO TEST
-  # fileName = '/share/t3data/kratsg/xAODs/mc14_13TeV.110351.PowhegPythia_P2012_ttbar_allhad.merge.AOD.e3232_s1982_s2008_r5787_r5853_tid01604209_00/AOD.01604209._000001.pool.root.1'
-  
   if not os.path.isfile(args.input_filename):
     raise ValueError('The supplied input file `%s` does not exist or I cannot find it.' % args.input_filename)
 
-  f = ROOT.TFile.Open(args.input_filename)
-  # Make the "transient tree" ? I guess we don't need to
-  # t = ROOT.xAOD.MakeTransientTree(f, args.tree_name)
-  t = f.Get(args.tree_name)
+  with tempfile.NamedTemporaryFile() as tmpFile:
+    ROOT.gSystem.RedirectOutput(tmpFile.name, "w")
 
-  # Print some information
-  print('Number of input events: %s' % t.GetEntries())
+    # load the xAOD EDM from RootCore and initialize
+    ROOT.gROOT.Macro('$ROOTCOREDIR/scripts/load_packages.C')
+    ROOT.xAOD.Init()
 
-  # first, just build up the whole dictionary
-  xAOD_Objects = inspect_tree(t)
+    f = ROOT.TFile.Open(args.input_filename)
+    # Make the "transient tree" ? I guess we don't need to
+    # t = ROOT.xAOD.MakeTransientTree(f, args.tree_name)
+    t = f.Get(args.tree_name)
 
-  # next, use the filters to cut down the dictionaries
-  filtered_xAOD_Objects = filter_xAOD_objects(xAOD_Objects, args)
+    # Print some information
+    # print('Number of input events: %s' % t.GetEntries())
+
+    # first, just build up the whole dictionary
+    xAOD_Objects = inspect_tree(t)
+
+    # next, use the filters to cut down the dictionaries for outputting
+    filtered_xAOD_Objects = filter_xAOD_objects(xAOD_Objects, args)
+
+    ROOT.gROOT.ProcessLine("gSystem->RedirectOutput(0);")
+
+  # next, make a report -- add in information about mean, RMS, entries
+  if args.make_report:
+    make_report(t, filtered_xAOD_Objects)
 
   # dump to file
   dump_xAOD_objects(filtered_xAOD_Objects, args)
