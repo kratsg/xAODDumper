@@ -172,7 +172,6 @@ def save_plot(item, container, width=700, height=500, formats=['png'], directory
 
 def make_report(t, xAOD_Objects, directory="xAODDumper_report"):
   for container, items in xAOD_Objects.iteritems():
-    print container
     sub_directory = os.path.join(directory,container)
     if not os.path.exists(sub_directory):
       os.makedirs(sub_directory)
