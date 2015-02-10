@@ -182,10 +182,7 @@ def make_report(t, xAOD_Objects, directory="xAODDumper_report"):
 
 def filter_xAOD_objects(xAOD_Objects, args):
   p_container_name = re.compile(fnmatch.translate(args.container_name_regex))
-  if args.has_aux:
-    p_container_type = re.compile(fnmatch.translate('xAOD::%s' % args.container_type_regex))
-  else:
-    p_container_type = re.compile(fnmatch.translate(args.container_type_regex))
+  p_container_type = re.compile(fnmatch.translate(args.container_type_regex))
 
   # Python Level: EXPERT MODE
   filtered_xAOD_Objects = {k:{prop:val for prop, val in v.iteritems() if (args.list_properties and prop=='prop') or (args.list_attributes and prop=='attr') or prop in ['type','has_aux','rootname']} for (k,v) in xAOD_Objects.iteritems() if p_container_name.match(k) and p_container_type.match(v['type']) and (not args.has_aux or v['has_aux']) }
@@ -260,7 +257,7 @@ if __name__ == "__main__":
                       type=str,
                       required=False,
                       dest='container_type_regex',
-                      help='Regex specification for the xAOD container type. The `xAOD::` is automatically preprended. For example, --type="Jet*" will match `xAOD::JetContainer` while --type="*Jet*" will match `xAOD::TauJetContainer`. This uses Unix filename matching.',
+                      help='Regex specification for the xAOD container type. For example, --type="xAOD::Jet*" will match `xAOD::JetContainer` while --type="xAOD::*Jet*" will match `xAOD::TauJetContainer`. This uses Unix filename matching.',
                       default='*')
   parser.add_argument('-c',
                       '--container',
