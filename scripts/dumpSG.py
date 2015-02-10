@@ -331,8 +331,8 @@ if __name__ == "__main__":
       ROOT.gSystem.RedirectOutput(tmpFile.name, "w")
 
     # load the xAOD EDM from RootCore and initialize
-    ROOT.gROOT.Macro('$ROOTCOREDIR/scripts/load_packages.C')
-    ROOT.xAOD.Init()
+    #ROOT.gROOT.Macro('$ROOTCOREDIR/scripts/load_packages.C')
+    #ROOT.xAOD.Init()
 
     f = ROOT.TFile.Open(args.input_filename)
     # Make the "transient tree" ? I guess we don't need to
