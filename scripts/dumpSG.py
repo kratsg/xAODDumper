@@ -49,11 +49,13 @@ except:
 import tempfile
 '''
   with tempfile.NamedTemporaryFile() as tmpFile:
-    ROOT.gSystem.RedirectOutput(tmpFile.name, "w")
+    if not args.verbose:
+      ROOT.gSystem.RedirectOutput(tmpFile.name, "w")
 
     # execute code here  
 
-    ROOT.gROOT.ProcessLine("gSystem->RedirectOutput(0);")
+    if not args.verbose:
+      ROOT.gROOT.ProcessLine("gSystem->RedirectOutput(0);")
 '''
 
 # Set up ROOT
@@ -129,13 +131,20 @@ def inspect_tree(t):
   return xAOD_Objects
 
 def save_plot(item, container, width=700, height=500, formats=['png'], directory="xAODDumper_report"):
-  pathToImage = "{0}.png".format(os.path.join(directory, item['name']))
-  c = ROOT.TCanvas(item['name'], item['name'], 200, 10, width, height)
-  t.Draw(item['rootname'])
-  c.SaveAs(pathToImage)
+  with tempfile.NamedTemporaryFile() as tmpFile:
+    if not args.verbose:
+      ROOT.gSystem.RedirectOutput(tmpFile.name, "w")
 
-  # get histogram drawn and grab details
-  htemp = c.GetPrimitive("htemp")
+    pathToImage = "{0}.png".format(os.path.join(directory, item['name']))
+    c = ROOT.TCanvas(item['name'], item['name'], 200, 10, width, height)
+    t.Draw(item['rootname'])
+    c.SaveAs(pathToImage)
+
+    # get histogram drawn and grab details
+    htemp = c.GetPrimitive("htemp")
+
+    if not args.verbose:
+          ROOT.gROOT.ProcessLine("gSystem->RedirectOutput(0);")
 
   # if it didn't draw a histogram, there was an error drawing it
   if htemp == None:
@@ -268,12 +277,15 @@ if __name__ == "__main__":
                       choices=['json','pickle','pretty'],
                       help='Specify the output format.',
                       default='pretty')
+  parser.add_argument('-v',
+                      '--verbose',
+                      dest='verbose',
+                      action='store_true',
+                      help='Enable verbose output from ROOT\'s stdout.')
   parser.add_argument('--has_aux',
                       dest='has_aux',
                       action='store_true',
                       help='Enable to only include containers which have an auxillary container. By default, it includes all containers it can find.')
-
-  # additional verbosity arguments (flags)
   parser.add_argument('--prop',
                       dest='list_properties',
                       action='store_true',
@@ -315,7 +327,8 @@ if __name__ == "__main__":
     raise ValueError('The supplied input file `%s` does not exist or I cannot find it.' % args.input_filename)
 
   with tempfile.NamedTemporaryFile() as tmpFile:
-    ROOT.gSystem.RedirectOutput(tmpFile.name, "w")
+    if not args.verbose:
+      ROOT.gSystem.RedirectOutput(tmpFile.name, "w")
 
     # load the xAOD EDM from RootCore and initialize
     ROOT.gROOT.Macro('$ROOTCOREDIR/scripts/load_packages.C')
@@ -335,7 +348,8 @@ if __name__ == "__main__":
     # next, use the filters to cut down the dictionaries for outputting
     filtered_xAOD_Objects = filter_xAOD_objects(xAOD_Objects, args)
 
-    ROOT.gROOT.ProcessLine("gSystem->RedirectOutput(0);")
+    if not args.verbose:
+      ROOT.gROOT.ProcessLine("gSystem->RedirectOutput(0);")
 
   # next, make a report -- add in information about mean, RMS, entries
   if args.make_report:
