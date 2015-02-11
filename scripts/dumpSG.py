@@ -345,6 +345,9 @@ if __name__ == "__main__":
   if not os.path.isfile(args.input_filename):
     raise ValueError('The supplied input file `%s` does not exist or I cannot find it.' % args.input_filename)
 
+  # start execution of actual program
+  import timing
+
   with tempfile.NamedTemporaryFile() as tmpFile:
     if not args.verbose:
       ROOT.gSystem.RedirectOutput(tmpFile.name, "w")
