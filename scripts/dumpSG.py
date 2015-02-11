@@ -130,7 +130,7 @@ def inspect_tree(t):
  
   return xAOD_Objects
 
-def save_plot(item, container, width=700, height=500, formats=['png'], directory="xAODDumper_report"):
+def save_plot(item, container, width=700, height=500, formats=['png'], directory="report"):
   with tempfile.NamedTemporaryFile() as tmpFile:
     if not args.verbose:
       ROOT.gSystem.RedirectOutput(tmpFile.name, "w")
@@ -170,13 +170,17 @@ def save_plot(item, container, width=700, height=500, formats=['png'], directory
 
   del c
 
-def make_report(t, xAOD_Objects, directory="xAODDumper_report"):
+def make_report(t, xAOD_Objects, directory="report"):
   for container, items in xAOD_Objects.iteritems():
     sub_directory = os.path.join(directory,container)
     if not os.path.exists(sub_directory):
       os.makedirs(sub_directory)
     for prop in items.get('prop', []):
       save_plot(prop, container, directory=sub_directory)
+
+  with open(os.path.join(directory, "info.json"), 'w+') as f:
+    f.write(json.dumps(xAOD_Objects, sort_keys=True, indent=4))
+
   return True
 
 def filter_xAOD_objects(xAOD_Objects, args):
@@ -250,7 +254,14 @@ if __name__ == "__main__":
                       required=False,
                       dest='output_filename',
                       help='Output file to store dumped information.',
-                      default='xAOD_Info.dump')
+                      default='info.dump')
+  parser.add_argument('-d',
+                      '--output_directory',
+                      type=str,
+                      required=False,
+                      dest='output_directory',
+                      help='Output directory to store the report generated.',
+                      default='report')
   parser.add_argument('-t',
                       '--type',
                       type=str,
@@ -349,7 +360,7 @@ if __name__ == "__main__":
 
   # next, make a report -- add in information about mean, RMS, entries
   if args.make_report:
-    make_report(t, filtered_xAOD_Objects)
+    make_report(t, filtered_xAOD_Objects, directory=args.output_directory)
 
   # dump to file
   dump_xAOD_objects(filtered_xAOD_Objects, args)
