@@ -172,9 +172,19 @@ def save_plot(item, container, width=700, height=500, formats=['png'], directory
   if drawable:
     # let the user know that this has RMS=0 and may be of interest
     if rms == 0:
-      print "{0}/{1} might be problematic\n\tpath:\t\t{2}\n\tmean:\t\t{3}\n\trms:\t\t{4}\n\tentries:\t{5}".format(container, item['name'], item['rootname'], item['mean'], item['rms'], item['entries'])
+      print "{0}/{1} might be problematic (RMS=0)\n\tpath:\t\t{2}\n\tmean:\t\t{3}\n\trms:\t\t{4}\n\tentries:\t{5}".format(container, item['name'], item['rootname'], item['mean'], item['rms'], item['entries'])
   else:
-    print "{0}/{1} couldn't be drawn\n\tpath:\t\t{2}".format(container, item['name'], item['rootname'])
+    errString = "{0}/{1} {{0}}\n\tpath:\t\t{2}".format(container, item['name'], item['rootname'])
+    if 'ElementLink' in item['type']:
+      # this is an example of what we can't draw normally
+      print errString.format("is an ElementLink type")
+    elif t.GetLeaf(item['rootname']).GetValue(0) == 0:
+      # this is when the values are missing, but Leaf.GetValue(0) returns 0.0
+      #     not sure why, ask someone what the hell is going on
+      print errString.format("has missing values")
+    else:
+      print errString.format("couldn't be drawn")
+
     # couldn't draw, remove it
     os.remove(pathToImage)
 
