@@ -89,13 +89,14 @@ def inspect_tree(t):
 
   # call them elements, because there are 4 types inside the leaves
   elements = t.GetListOfLeaves()
-  for i in range(elements.GetEntries()):
-    el = elements.At(i)
-
+  for el in elements:
     # get the name of the element
-    elName = el.GetName()
+    # because of stupid people, we need to go up to the branch for this
+    elName = el.GetBranch().GetName()
+
     # filter its type out
-    elType = xAOD_remove_version.sub('', xAOD_Type_Name.search(el.GetTypeName()).groups()[1].replace('Aux','') )
+    elType = el.GetTypeName()
+    elType = xAOD_remove_version.sub('', xAOD_Type_Name.search(elType).groups()[1].replace('Aux','') )
 
     # match the name against the 4 elements we care about, figure out which one it is next
     m_cont_name = xAOD_Container_Name.search(elName)
@@ -117,8 +118,17 @@ def inspect_tree(t):
     elif m_cont_attr:
       container, attribute = m_cont_attr.groups()
       if 'btagging' in attribute.lower():
+        # print attribute, "|", elName, "|", elType
+        ''' 
+        David found an issue where instead of expecting something that looks like
+            btaggingLink | AntiKt10LCTopoJetsAuxDyn.btaggingLink | ElementLink<DataVector<xAOD::BTagging> >
+        it instead looks like
+            btaggingLink_ | AntiKt10LCTopoJetsAuxDyn.btaggingLink_ | Int_t
+        '''
+        btaggingType = xAOD_Grab_Inner_Type.search(elType)
+        if btaggingType:
+          elType = btaggingType.groups()[0] + ' *'
         attribute = attribute.replace('Link','')
-        elType = xAOD_Grab_Inner_Type.search(elType).groups()[0] + ' *'
         xAOD_Objects[container]['prop'].append({'name': attribute, 'type': elType, 'rootname': elName})
       else:
         xAOD_Objects[container]['attr'].append({'name': attribute, 'type': elType, 'rootname': elName})
@@ -176,6 +186,8 @@ def make_report(t, xAOD_Objects, directory="report"):
     if not os.path.exists(sub_directory):
       os.makedirs(sub_directory)
     for prop in items.get('prop', []):
+      save_plot(prop, container, directory=sub_directory)
+    for prop in items.get('attr', []):
       save_plot(prop, container, directory=sub_directory)
 
   with open(os.path.join(directory, "info.json"), 'w+') as f:
@@ -364,3 +376,5 @@ if __name__ == "__main__":
 
   # dump to file
   dump_xAOD_objects(filtered_xAOD_Objects, args)
+
+  print "All done!"
