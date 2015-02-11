@@ -301,6 +301,11 @@ if __name__ == "__main__":
                       dest='verbose',
                       action='store_true',
                       help='Enable verbose output from ROOT\'s stdout.')
+  parser.add_argument('-b',
+                      '--batch',
+                      dest='batch_mode',
+                      action='store_true',
+                      help='Enable batch mode for ROOT.')
   parser.add_argument('--has_aux',
                       dest='has_aux',
                       action='store_true',
@@ -347,6 +352,9 @@ if __name__ == "__main__":
 
   # start execution of actual program
   import timing
+
+  # if flag is shown, set batch_mode to true, else false
+  ROOT.gROOT.SetBatch(args.batch_mode)
 
   with tempfile.NamedTemporaryFile() as tmpFile:
     if not args.verbose:
