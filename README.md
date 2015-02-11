@@ -17,8 +17,9 @@ dumpSG.py <input file> *kwargs
 ### [dumpSG.py](scripts/dumpSG.py)
 ```
 usage: dumpSG.py [-h] [--tree TREE_NAME] [-o OUTPUT_FILENAME]
-                 [-t CONTAINER_TYPE_REGEX] [-c CONTAINER_NAME_REGEX]
-                 [-f {json,pickle,pretty}] [--has_aux] [--prop] [--attr]
+                 [-d OUTPUT_DIRECTORY] [-t CONTAINER_TYPE_REGEX]
+                 [-c CONTAINER_NAME_REGEX] [-f {json,pickle,pretty}] [-v]
+                 [--has_aux] [--prop] [--attr] [--report]
                  [--filterProps PROPERTY_NAME_REGEX]
                  [--filterAttrs ATTRIBUTE_NAME_REGEX] [-i]
                  input_filename
@@ -34,12 +35,14 @@ optional arguments:
                         structure.
   -o OUTPUT_FILENAME, --output OUTPUT_FILENAME
                         Output file to store dumped information.
+  -d OUTPUT_DIRECTORY, --output_directory OUTPUT_DIRECTORY
+                        Output directory to store the report generated.
   -t CONTAINER_TYPE_REGEX, --type CONTAINER_TYPE_REGEX
-                        Regex specification for the xAOD container type. The
-                        `xAOD::` is automatically preprended. For example,
-                        --type="Jet*" will match `xAOD::JetContainer` while
-                        --type="*Jet*" will match `xAOD::TauJetContainer`.
-                        This uses Unix filename matching.
+                        Regex specification for the xAOD container type. For
+                        example, --type="xAOD::Jet*" will match
+                        `xAOD::JetContainer` while --type="xAOD::*Jet*" will
+                        match `xAOD::TauJetContainer`. This uses Unix filename
+                        matching.
   -c CONTAINER_NAME_REGEX, --container CONTAINER_NAME_REGEX
                         Regex specification for the xAOD container name. For
                         example, --container="AntiKt10LCTopo*" will match
@@ -47,6 +50,7 @@ optional arguments:
                         matching.
   -f {json,pickle,pretty}, --format {json,pickle,pretty}
                         Specify the output format.
+  -v, --verbose         Enable verbose output from ROOT's stdout.
   --has_aux             Enable to only include containers which have an
                         auxillary container. By default, it includes all
                         containers it can find.
@@ -58,6 +62,11 @@ optional arguments:
                         it only prints the xAOD::ContainerType and containers
                         for that given type. This is like an increased
                         verbosity option for container attributes.
+  --report              Enable to also create a directory containing plots and
+                        generate additional reporting information/statistics.
+                        By default, this is turned off as it can be
+                        potentially slow. The output directory containing the
+                        plots will be named `xAODDumper_Report`.
   --filterProps PROPERTY_NAME_REGEX
                         (INACTIVE) Regex specification for xAOD property
                         names. Only used if --prop enabled.
