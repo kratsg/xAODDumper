@@ -28,8 +28,9 @@ STDOUT = os.fdopen(os.dup(sys.stdout.fileno()), 'w')
 
 # for logging, set it up
 import logging
-dumpSG_logger = logging.getLogger('dumpSG')
-dumpSG_logger.addHandler(logging.StreamHandler(STDOUT))
+root_logger = logging.getLogger()
+root_logger.addHandler(logging.StreamHandler(STDOUT))
+dumpSG_logger = logging.getLogger("dumpSG")
 
 # First check if ROOTCOREDIR exists, implies ROOTCORE is set up
 try:
@@ -61,12 +62,12 @@ except:
 
 '''
   with tempfile.NamedTemporaryFile() as tmpFile:
-    if not args.verbose:
+    if not args.root_verbose:
       ROOT.gSystem.RedirectOutput(tmpFile.name, "w")
 
     # execute code here  
 
-    if not args.verbose:
+    if not args.root_verbose:
       ROOT.gROOT.ProcessLine("gSystem->RedirectOutput(0);")
 '''
 
@@ -154,7 +155,7 @@ def inspect_tree(t):
 
 def save_plot(item, container, width=700, height=500, formats=['png'], directory="report"):
   with tempfile.NamedTemporaryFile() as tmpFile:
-    if not args.verbose:
+    if not args.root_verbose:
       ROOT.gSystem.RedirectOutput(tmpFile.name, "w")
 
     pathToImage = "{0}.png".format(os.path.join(directory, item['name']))
@@ -165,8 +166,8 @@ def save_plot(item, container, width=700, height=500, formats=['png'], directory
     # get histogram drawn and grab details
     htemp = c.GetPrimitive("htemp")
 
-    if not args.verbose:
-          ROOT.gROOT.ProcessLine("gSystem->RedirectOutput(0);")
+    if not args.root_verbose:
+      ROOT.gROOT.ProcessLine("gSystem->RedirectOutput(0);")
 
   # if it didn't draw a histogram, there was an error drawing it
   if htemp == None:
@@ -269,7 +270,6 @@ def dump_xAOD_objects(xAOD_Objects, args):
   return True
 
 if __name__ == "__main__":
-
   parser = argparse.ArgumentParser(description='Process xAOD File and Dump Information.', usage='%(prog)s filename [filename] [options]')
   # positional argument, require the first argument to be the input filename
   parser.add_argument('input_filename',
@@ -322,8 +322,13 @@ if __name__ == "__main__":
   parser.add_argument('-v',
                       '--verbose',
                       dest='verbose',
+                      action='count',
+                      default=0,
+                      help='Enable verbose output of various levels. Use --debug to enable ROOT debugging.')
+  parser.add_argument('--debug',
+                      dest='root_verbose',
                       action='store_true',
-                      help='Enable verbose output from ROOT\'s stdout.')
+                      help='Enable ROOT debugging/output.')
   parser.add_argument('-b',
                       '--batch',
                       dest='batch_mode',
@@ -365,59 +370,66 @@ if __name__ == "__main__":
                       action='store_true',
                       help='(INACTIVE) Flip on/off interactive mode allowing you to navigate through the container types and properties.')
 
-  # parse the arguments, throw errors if missing any
-  args = parser.parse_args()
-  if args.property_name_regex != '*' or args.attribute_name_regex != '*' or args.interactive:
-    parser.error("The following arguments have not been implemented yet: --filterProps, --filterAttrs, --interactive. Sorry for the inconvenience.")
+  try:
+    # start execution of actual program
+    import timing
 
-  # start execution of actual program
-  import timing
+    # parse the arguments, throw errors if missing any
+    args = parser.parse_args()
+    if args.property_name_regex != '*' or args.attribute_name_regex != '*' or args.interactive:
+      parser.error("The following arguments have not been implemented yet: --filterProps, --filterAttrs, --interactive. Sorry for the inconvenience.")
 
-  # if flag is shown, set batch_mode to true, else false
-  ROOT.gROOT.SetBatch(args.batch_mode)
+    # set verbosity for python printing
+    if args.verbose <= 3:
+      dumpSG_logger.setLevel(logging.WARNING - args.verbose*10)
+    else:
+      dumpSG_logger.setLevel(logging.NOTSET)
 
+    with tempfile.NamedTemporaryFile() as tmpFile:
+      if not args.root_verbose:
+        ROOT.gSystem.RedirectOutput(tmpFile.name, "w")
 
-  with tempfile.NamedTemporaryFile() as tmpFile:
-    if not args.verbose:
-      ROOT.gSystem.RedirectOutput(tmpFile.name, "w")
+      # if flag is shown, set batch_mode to true, else false
+      ROOT.gROOT.SetBatch(args.batch_mode)
 
-    # load the xAOD EDM from RootCore and initialize
-    #ROOT.gROOT.Macro('$ROOTCOREDIR/scripts/load_packages.C')
-    #ROOT.xAOD.Init()
+      # load the xAOD EDM from RootCore and initialize
+      #ROOT.gROOT.Macro('$ROOTCOREDIR/scripts/load_packages.C')
+      #ROOT.xAOD.Init()
 
-    # start by making a TChain
-    dumpSG_logger.info("Initializing TChain")
-    t = ROOT.TChain(args.tree_name)
-    for fname in args.input_filename:
-      if not os.path.isfile(fname):
-        dumpSG_logger.exception('The supplied input file `{0}` does not exist or I cannot find it.'.format(fname))
-        raise ValueError
-      else:
-        dumpSG_logger.info("\tAdding {0}".format(fname))
-        t.Add(fname)
+      # start by making a TChain
+      dumpSG_logger.info("Initializing TChain")
+      t = ROOT.TChain(args.tree_name)
+      for fname in args.input_filename:
+        if not os.path.isfile(fname):
+          raise ValueError('The supplied input file `{0}` does not exist or I cannot find it.'.format(fname))
+        else:
+          dumpSG_logger.info("\tAdding {0}".format(fname))
+          t.Add(fname)
 
-    # f = ROOT.TFile.Open(args.input_filename)
-    # Make the "transient tree" ? I guess we don't need to
-    # t = ROOT.xAOD.MakeTransientTree(f, args.tree_name)
-    # t = f.Get(args.tree_name)
+      # Print some information
+      dumpSG_logger.info('Number of input events: %s' % t.GetEntries())
 
-    # Print some information
-    # print('Number of input events: %s' % t.GetEntries())
+      # first, just build up the whole dictionary
+      xAOD_Objects = inspect_tree(t)
 
-    # first, just build up the whole dictionary
-    xAOD_Objects = inspect_tree(t)
+      # next, use the filters to cut down the dictionaries for outputting
+      filtered_xAOD_Objects = filter_xAOD_objects(xAOD_Objects, args)
 
-    # next, use the filters to cut down the dictionaries for outputting
-    filtered_xAOD_Objects = filter_xAOD_objects(xAOD_Objects, args)
+      # next, make a report -- add in information about mean, RMS, entries
+      if args.make_report:
+        make_report(t, filtered_xAOD_Objects, directory=args.output_directory)
 
-    # next, make a report -- add in information about mean, RMS, entries
-    if args.make_report:
-      make_report(t, filtered_xAOD_Objects, directory=args.output_directory)
+      # dump to file
+      dump_xAOD_objects(filtered_xAOD_Objects, args)
 
-    # dump to file
-    dump_xAOD_objects(filtered_xAOD_Objects, args)
+      dumpSG_logger.info("All done!")
 
-    dumpSG_logger.info("All done!")
+      if not args.root_verbose:
+        ROOT.gROOT.ProcessLine("gSystem->RedirectOutput(0);")
 
-    if not args.verbose:
+  except Exception, e:
+    # stop redirecting if we crash as well
+    if not args.root_verbose:
       ROOT.gROOT.ProcessLine("gSystem->RedirectOutput(0);")
+
+    dumpSG_logger.exception("{0}\nAn exception was caught!".format("-"*20))

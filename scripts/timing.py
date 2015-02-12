@@ -1,5 +1,11 @@
+from __future__ import print_function
 import atexit
 from time import clock
+import logging
+
+logger = logging.getLogger("timing")
+logger.setLevel(10) # we use info
+print = logger.info
 
 def secondsToStr(t):
     return "%d:%02d:%02d.%03d" % \
@@ -8,16 +14,17 @@ def secondsToStr(t):
 
 line = "="*40
 def log(s, elapsed=None):
-    print line
-    print secondsToStr(clock()), '-', s
+    print(line)
+    print("{0}-{1}".format(secondsToStr(clock()), s))
     if elapsed:
-        print "Elapsed time:", elapsed
-    print line
-    print
+        print("Elapsed time: {0}".format(elapsed))
+    print(line)
+    print("")
 
 def endlog():
     end = clock()
     elapsed = end-start
+    print("")
     log("End Program", secondsToStr(elapsed))
 
 def now():
