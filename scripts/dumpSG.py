@@ -13,14 +13,29 @@
 # @endcode
 #
 
-# First check if ROOTCOREDIR exists, implies ROOTCORE is set up
+# __future__ imports must occur at beginning of file
+# redirect python output using the newer print function with file description
+#   print(string, f=fd)
+from __future__ import print_function
+# used to redirect ROOT output
+#   see http://stackoverflow.com/questions/21541238/get-ipython-doesnt-work-in-a-startup-script-for-ipython-ipython-notebook
+import tempfile
+
 import os, sys
+# grab the stdout and have python write to this instead
+# ROOT will write to the original stdout
+STDOUT = os.fdopen(os.dup(sys.stdout.fileno()), 'w')
+
+# for logging, set it up
+import logging
+dumpSG_logger = logging.getLogger('dumpSG')
+dumpSG_logger.addHandler(logging.StreamHandler(STDOUT))
+
+# First check if ROOTCOREDIR exists, implies ROOTCORE is set up
 try:
   os.environ['ROOTCOREDIR']
 except KeyError:
-  print "It appears RootCore is not set up. Please set up RootCore and then try running me again."
-  print "\tHint: try running `rcSetup`"
-  sys.exit(1)
+  raise OSError("It appears RootCore is not set up. Please set up RootCore and then try running me again. Hint: try running `rcSetup`")
 
 # import all libraries
 import argparse
@@ -44,9 +59,6 @@ try:
 except:
   import pickle
 
-# used to redirect ROOT output
-#   see http://stackoverflow.com/questions/21541238/get-ipython-doesnt-work-in-a-startup-script-for-ipython-ipython-notebook
-import tempfile
 '''
   with tempfile.NamedTemporaryFile() as tmpFile:
     if not args.verbose:
@@ -172,18 +184,18 @@ def save_plot(item, container, width=700, height=500, formats=['png'], directory
   if drawable:
     # let the user know that this has RMS=0 and may be of interest
     if rms == 0:
-      print "{0}/{1} might be problematic (RMS=0)\n\tpath:\t\t{2}\n\tmean:\t\t{3}\n\trms:\t\t{4}\n\tentries:\t{5}".format(container, item['name'], item['rootname'], item['mean'], item['rms'], item['entries'])
+      dumpSG_logger.warning("{0}/{1} might be problematic (RMS=0)\n\tpath:\t\t{2}\n\tmean:\t\t{3}\n\trms:\t\t{4}\n\tentries:\t{5}".format(container, item['name'], item['rootname'], item['mean'], item['rms'], item['entries']))
   else:
     errString = "{0}/{1} {{0}}\n\tpath:\t\t{2}".format(container, item['name'], item['rootname'])
     if 'ElementLink' in item['type']:
       # this is an example of what we can't draw normally
-      print errString.format("is an ElementLink type")
+      dumpSG_logger.info(errString.format("is an ElementLink type"))
     elif t.GetLeaf(item['rootname']).GetValue(0) == 0:
       # this is when the values are missing, but Leaf.GetValue(0) returns 0.0
       #     not sure why, ask someone what the hell is going on
-      print errString.format("has missing values")
+      dumpSG_logger.warning(errString.format("has missing values"))
     else:
-      print errString.format("couldn't be drawn")
+      dumpSG_logger.warning(errString.format("couldn't be drawn"))
 
     # couldn't draw, remove it
     os.remove(pathToImage)
@@ -364,6 +376,7 @@ if __name__ == "__main__":
   # if flag is shown, set batch_mode to true, else false
   ROOT.gROOT.SetBatch(args.batch_mode)
 
+
   with tempfile.NamedTemporaryFile() as tmpFile:
     if not args.verbose:
       ROOT.gSystem.RedirectOutput(tmpFile.name, "w")
@@ -372,15 +385,15 @@ if __name__ == "__main__":
     #ROOT.gROOT.Macro('$ROOTCOREDIR/scripts/load_packages.C')
     #ROOT.xAOD.Init()
 
-    # Start by making a TChain
-    print "Initializing TChain"
+    # start by making a TChain
+    dumpSG_logger.info("Initializing TChain")
     t = ROOT.TChain(args.tree_name)
-
     for fname in args.input_filename:
       if not os.path.isfile(fname):
-        raise ValueError('The supplied input file `%s` does not exist or I cannot find it.' % fname)
+        dumpSG_logger.exception('The supplied input file `{0}` does not exist or I cannot find it.'.format(fname))
+        raise ValueError
       else:
-        print "\tAdding {0}".format(fname)
+        dumpSG_logger.info("\tAdding {0}".format(fname))
         t.Add(fname)
 
     # f = ROOT.TFile.Open(args.input_filename)
@@ -397,14 +410,14 @@ if __name__ == "__main__":
     # next, use the filters to cut down the dictionaries for outputting
     filtered_xAOD_Objects = filter_xAOD_objects(xAOD_Objects, args)
 
+    # next, make a report -- add in information about mean, RMS, entries
+    if args.make_report:
+      make_report(t, filtered_xAOD_Objects, directory=args.output_directory)
+
+    # dump to file
+    dump_xAOD_objects(filtered_xAOD_Objects, args)
+
+    dumpSG_logger.info("All done!")
+
     if not args.verbose:
       ROOT.gROOT.ProcessLine("gSystem->RedirectOutput(0);")
-
-  # next, make a report -- add in information about mean, RMS, entries
-  if args.make_report:
-    make_report(t, filtered_xAOD_Objects, directory=args.output_directory)
-
-  # dump to file
-  dump_xAOD_objects(filtered_xAOD_Objects, args)
-
-  print "All done!"
