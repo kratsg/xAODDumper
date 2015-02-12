@@ -370,14 +370,14 @@ if __name__ == "__main__":
                       action='store_true',
                       help='(INACTIVE) Flip on/off interactive mode allowing you to navigate through the container types and properties.')
 
+  # parse the arguments, throw errors if missing any
+  args = parser.parse_args()
+  if args.property_name_regex != '*' or args.attribute_name_regex != '*' or args.interactive:
+    parser.error("The following arguments have not been implemented yet: --filterProps, --filterAttrs, --interactive. Sorry for the inconvenience.")
+
   try:
     # start execution of actual program
     import timing
-
-    # parse the arguments, throw errors if missing any
-    args = parser.parse_args()
-    if args.property_name_regex != '*' or args.attribute_name_regex != '*' or args.interactive:
-      parser.error("The following arguments have not been implemented yet: --filterProps, --filterAttrs, --interactive. Sorry for the inconvenience.")
 
     # set verbosity for python printing
     if args.verbose <= 3:

@@ -16,18 +16,12 @@ dumpSG.py <input file> *kwargs
 
 ### [dumpSG.py](scripts/dumpSG.py)
 ```
-usage: dumpSG.py [-h] [--tree TREE_NAME] [-o OUTPUT_FILENAME]
-                 [-d OUTPUT_DIRECTORY] [-t CONTAINER_TYPE_REGEX]
-                 [-c CONTAINER_NAME_REGEX] [-f {json,pickle,pretty}] [-v]
-                 [--has_aux] [--prop] [--attr] [--report]
-                 [--filterProps PROPERTY_NAME_REGEX]
-                 [--filterAttrs ATTRIBUTE_NAME_REGEX] [-i]
-                 input_filename
+usage: dumpSG.py filename [filename] [options]
 
 Process xAOD File and Dump Information.
 
 positional arguments:
-  input_filename        an input root file to read
+  input_filename        input root file(s) to read
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -50,7 +44,10 @@ optional arguments:
                         matching.
   -f {json,pickle,pretty}, --format {json,pickle,pretty}
                         Specify the output format.
-  -v, --verbose         Enable verbose output from ROOT's stdout.
+  -v, --verbose         Enable verbose output of various levels. Use --debug
+                        to enable ROOT debugging.
+  --debug               Enable ROOT debugging/output.
+  -b, --batch           Enable batch mode for ROOT.
   --has_aux             Enable to only include containers which have an
                         auxillary container. By default, it includes all
                         containers it can find.
