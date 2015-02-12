@@ -258,11 +258,12 @@ def dump_xAOD_objects(xAOD_Objects, args):
 
 if __name__ == "__main__":
 
-  parser = argparse.ArgumentParser(description='Process xAOD File and Dump Information.')
+  parser = argparse.ArgumentParser(description='Process xAOD File and Dump Information.', usage='%(prog)s filename [filename] [options]')
   # positional argument, require the first argument to be the input filename
   parser.add_argument('input_filename',
                       type=str,
-                      help='an input root file to read')
+                      nargs='+',
+                      help='input root file(s) to read')
   # these are options allowing for various additional configurations in filtering container and types to dump
   parser.add_argument('--tree',
                       type=str,
@@ -357,9 +358,6 @@ if __name__ == "__main__":
   if args.property_name_regex != '*' or args.attribute_name_regex != '*' or args.interactive:
     parser.error("The following arguments have not been implemented yet: --filterProps, --filterAttrs, --interactive. Sorry for the inconvenience.")
 
-  if not os.path.isfile(args.input_filename):
-    raise ValueError('The supplied input file `%s` does not exist or I cannot find it.' % args.input_filename)
-
   # start execution of actual program
   import timing
 
@@ -374,10 +372,21 @@ if __name__ == "__main__":
     #ROOT.gROOT.Macro('$ROOTCOREDIR/scripts/load_packages.C')
     #ROOT.xAOD.Init()
 
-    f = ROOT.TFile.Open(args.input_filename)
+    # Start by making a TChain
+    print "Initializing TChain"
+    t = ROOT.TChain(args.tree_name)
+
+    for fname in args.input_filename:
+      if not os.path.isfile(fname):
+        raise ValueError('The supplied input file `%s` does not exist or I cannot find it.' % fname)
+      else:
+        print "\tAdding {0}".format(fname)
+        t.Add(fname)
+
+    # f = ROOT.TFile.Open(args.input_filename)
     # Make the "transient tree" ? I guess we don't need to
     # t = ROOT.xAOD.MakeTransientTree(f, args.tree_name)
-    t = f.Get(args.tree_name)
+    # t = f.Get(args.tree_name)
 
     # Print some information
     # print('Number of input events: %s' % t.GetEntries())
