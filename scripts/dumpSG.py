@@ -74,6 +74,53 @@ except:
 # Set up ROOT
 import ROOT
 
+def format_arg_value(arg_val):
+  """ Return a string representing a (name, value) pair.
+  
+  >>> format_arg_value(('x', (1, 2, 3)))
+  'x=(1, 2, 3)'
+  """
+  arg, val = arg_val
+  return "%s=%r" % (arg, val)
+
+# http://wordaligned.org/articles/echo
+def echo(*echoargs, **echokwargs):
+  dumpSG_logger.debug(echoargs)
+  dumpSG_logger.debug(echokwargs)
+  def echo_wrap(fn):
+    """ Echo calls to a function.
+    
+    Returns a decorated version of the input function which "echoes" calls
+    made to it by writing out the function's name and the arguments it was
+    called with.
+    """
+
+    # Unpack function's arg count, arg names, arg defaults
+    code = fn.func_code
+    argcount = code.co_argcount
+    argnames = code.co_varnames[:argcount]
+    fn_defaults = fn.func_defaults or list()
+    argdefs = dict(zip(argnames[-len(fn_defaults):], fn_defaults))
+
+    def wrapped(*v, **k):
+      # Collect function arguments by chaining together positional,
+      # defaulted, extra positional and keyword arguments.
+      positional = map(format_arg_value, zip(argnames, v))
+      defaulted = [format_arg_value((a, argdefs[a]))
+                   for a in argnames[len(v):] if a not in k]
+      nameless = map(repr, v[argcount:])
+      keyword = map(format_arg_value, k.items())
+      args = positional + defaulted + nameless + keyword
+      write("%s(%s)\n" % (fn.__name__, ", ".join(args)))
+      return fn(*v, **k)
+    return wrapped
+
+  write = echokwargs.get('write', sys.stdout.write)
+  if len(echoargs) == 1 and callable(echoargs[0]):
+    return echo_wrap(echoargs[0])
+  return echo_wrap
+
+@echo(write=dumpSG_logger.debug)
 def inspect_tree(t):
   '''
   filter based on the 4 elements:
@@ -153,21 +200,15 @@ def inspect_tree(t):
  
   return xAOD_Objects
 
+@echo(write=dumpSG_logger.debug)
 def save_plot(item, container, width=700, height=500, formats=['png'], directory="report"):
-  with tempfile.NamedTemporaryFile() as tmpFile:
-    if not args.root_verbose:
-      ROOT.gSystem.RedirectOutput(tmpFile.name, "w")
+  pathToImage = "{0}.png".format(os.path.join(directory, item['name']))
+  c = ROOT.TCanvas(item['name'], item['name'], 200, 10, width, height)
+  t.Draw(item['rootname'])
+  c.SaveAs(pathToImage)
 
-    pathToImage = "{0}.png".format(os.path.join(directory, item['name']))
-    c = ROOT.TCanvas(item['name'], item['name'], 200, 10, width, height)
-    t.Draw(item['rootname'])
-    c.SaveAs(pathToImage)
-
-    # get histogram drawn and grab details
-    htemp = c.GetPrimitive("htemp")
-
-    if not args.root_verbose:
-      ROOT.gROOT.ProcessLine("gSystem->RedirectOutput(0);")
+  # get histogram drawn and grab details
+  htemp = c.GetPrimitive("htemp")
 
   # if it didn't draw a histogram, there was an error drawing it
   if htemp == None:
@@ -191,7 +232,7 @@ def save_plot(item, container, width=700, height=500, formats=['png'], directory
     if 'ElementLink' in item['type']:
       # this is an example of what we can't draw normally
       dumpSG_logger.info(errString.format("is an ElementLink type"))
-    elif t.GetLeaf(item['rootname']).GetValue(0) == 0:
+    elif t.GetBranch(item['rootname']).GetListOfLeaves()[0].GetValue(0) == 0:
       # this is when the values are missing, but Leaf.GetValue(0) returns 0.0
       #     not sure why, ask someone what the hell is going on
       dumpSG_logger.warning(errString.format("has missing values"))
@@ -203,6 +244,7 @@ def save_plot(item, container, width=700, height=500, formats=['png'], directory
 
   del c
 
+@echo(write=dumpSG_logger.debug)
 def make_report(t, xAOD_Objects, directory="report"):
   for container, items in xAOD_Objects.iteritems():
     sub_directory = os.path.join(directory,container)
@@ -218,6 +260,7 @@ def make_report(t, xAOD_Objects, directory="report"):
 
   return True
 
+@echo(write=dumpSG_logger.debug)
 def filter_xAOD_objects(xAOD_Objects, args):
   p_container_name = re.compile(fnmatch.translate(args.container_name_regex))
   p_container_type = re.compile(fnmatch.translate(args.container_type_regex))
@@ -226,6 +269,7 @@ def filter_xAOD_objects(xAOD_Objects, args):
   filtered_xAOD_Objects = {k:{prop:val for prop, val in v.iteritems() if (args.list_properties and prop=='prop') or (args.list_attributes and prop=='attr') or prop in ['type','has_aux','rootname']} for (k,v) in xAOD_Objects.iteritems() if p_container_name.match(k) and p_container_type.match(v['type']) and (not args.has_aux or v['has_aux']) }
   return filtered_xAOD_Objects
 
+@echo(write=dumpSG_logger.debug)
 def dump_pretty(xAOD_Objects, f):
   currContainerType = ''
   # loop over all containers, sort by type
@@ -254,7 +298,7 @@ def dump_pretty(xAOD_Objects, f):
 
   f.write('  %s\n' % ('-'*20))
 
-
+@echo(write=dumpSG_logger.debug)
 def dump_xAOD_objects(xAOD_Objects, args):
   # dumps object information given the structure output by inspect_tree()
   # NB: all sorting is done using lowercased strings because it's human-sorting
@@ -325,7 +369,7 @@ if __name__ == "__main__":
                       action='count',
                       default=0,
                       help='Enable verbose output of various levels. Use --debug to enable ROOT debugging.')
-  parser.add_argument('--debug',
+  parser.add_argument('--debug-root',
                       dest='root_verbose',
                       action='store_true',
                       help='Enable ROOT debugging/output.')
@@ -380,10 +424,10 @@ if __name__ == "__main__":
     import timing
 
     # set verbosity for python printing
-    if args.verbose <= 3:
-      dumpSG_logger.setLevel(logging.WARNING - args.verbose*10)
+    if args.verbose < 5:
+      dumpSG_logger.setLevel(25 - args.verbose*5)
     else:
-      dumpSG_logger.setLevel(logging.NOTSET)
+      dumpSG_logger.setLevel(logging.NOTSET + 1)
 
     with tempfile.NamedTemporaryFile() as tmpFile:
       if not args.root_verbose:
@@ -422,7 +466,7 @@ if __name__ == "__main__":
       # dump to file
       dump_xAOD_objects(filtered_xAOD_Objects, args)
 
-      dumpSG_logger.info("All done!")
+      dumpSG_logger.log(25, "All done!")
 
       if not args.root_verbose:
         ROOT.gROOT.ProcessLine("gSystem->RedirectOutput(0);")
