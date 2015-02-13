@@ -44,9 +44,9 @@ optional arguments:
                         matching.
   -f {json,pickle,pretty}, --format {json,pickle,pretty}
                         Specify the output format.
-  -v, --verbose         Enable verbose output of various levels. Use --debug
-                        to enable ROOT debugging.
-  --debug               Enable ROOT debugging/output.
+  -v, --verbose         Enable verbose output of various levels. Use --debug-
+                        root to enable ROOT debugging.
+  --debug-root          Enable ROOT debugging/output.
   -b, --batch           Enable batch mode for ROOT.
   --has_aux             Enable to only include containers which have an
                         auxillary container. By default, it includes all

@@ -368,7 +368,7 @@ if __name__ == "__main__":
                       dest='verbose',
                       action='count',
                       default=0,
-                      help='Enable verbose output of various levels. Use --debug to enable ROOT debugging.')
+                      help='Enable verbose output of various levels. Use --debug-root to enable ROOT debugging.')
   parser.add_argument('--debug-root',
                       dest='root_verbose',
                       action='store_true',
