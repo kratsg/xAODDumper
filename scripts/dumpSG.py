@@ -208,13 +208,6 @@ def save_plot(item, container, width=700, height=500, formats=['png'], directory
 
   # get histogram drawn and grab details
   htemp = c.GetPrimitive("htemp")
-  # set log scale if htemp is drawable and the maximum/minimum is greater than tolerance
-  if htemp:
-    c.SetLogy(bool(htemp.GetMaximum()/htemp.GetMinimum(0) > logTolerance))
-
-  c.SaveAs(pathToImage)
-
-
   # if it didn't draw a histogram, there was an error drawing it
   if htemp == None:
     entries, mean, rms =  0, 0.0, 0.0
@@ -224,6 +217,14 @@ def save_plot(item, container, width=700, height=500, formats=['png'], directory
     entries, mean, rms =  htemp.GetEntries(), htemp.GetMean(), htemp.GetRMS()
     counts_min, counts_max = htemp.GetMinimum(), htemp.GetMaximum()
     drawable = True
+    # set log scale if htemp is drawable and the maximum/minimum is greater than tolerance
+    c.SetLogy(bool(counts_max/counts_max > logTolerance))
+    htemp.SetTitle(item['name'])
+    htemp.SetXTitle(item['name'])
+
+    # no issues with drawing it
+    c.SaveAs(pathToImage)
+  del c
 
   item['entries'] = entries
   item['mean'] = mean
@@ -236,23 +237,23 @@ def save_plot(item, container, width=700, height=500, formats=['png'], directory
   if drawable:
     # let the user know that this has RMS=0 and may be of interest
     if rms == 0:
-      dumpSG_logger.warning("{0}/{1} might be problematic (RMS=0)\n\tpath:\t\t{2}\n\tmean:\t\t{3}\n\trms:\t\t{4}\n\tentries:\t{5}".format(container, item['name'], item['rootname'], item['mean'], item['rms'], item['entries']))
+      dumpSG_logger.warning("{0}/{1} might be problematic (RMS=0)".format(container, item['name']))
+      dumpSG_logger.info("\tpath:\t\t{0}\n\tmean:\t\t{1}\n\trms:\t\t{2}\n\tentries:\t{3}".format(item['rootname'], item['mean'], item['rms'], item['entries']))
   else:
-    errString = "{0}/{1} {{0}}\n\tpath:\t\t{2}".format(container, item['name'], item['rootname'])
+    errString = "{0}/{1} {{0}}".format(container, item['name'])
+    detailErrString = "\tpath:\t\t{0}".format(item['rootname'])
     if 'ElementLink' in item['type']:
       # this is an example of what we can't draw normally
       dumpSG_logger.info(errString.format("is an ElementLink type"))
+      dumpSG_logger.info(detailErrString)
     elif t.GetBranch(item['rootname']).GetListOfLeaves()[0].GetValue(0) == 0:
       # this is when the values are missing, but Leaf.GetValue(0) returns 0.0
       #     not sure why, ask someone what the hell is going on
       dumpSG_logger.warning(errString.format("has missing values"))
+      dumpSG_logger.info(detailErrString)
     else:
       dumpSG_logger.warning(errString.format("couldn't be drawn"))
-
-    # couldn't draw, remove it
-    os.remove(pathToImage)
-
-  del c
+      dumpSG_logger.info(detailErrString)
 
 @echo(write=dumpSG_logger.debug)
 def make_report(t, xAOD_Objects, directory="report"):
