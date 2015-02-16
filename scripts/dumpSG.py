@@ -214,15 +214,31 @@ def save_plot(item, container, width=700, height=500, formats=['png'], directory
     drawable = False
     counts_min, counts_max = 0.0, 0.0
   else:
+    # we didn't have an error drawing it, let's apply makeup
     entries, mean, rms =  htemp.GetEntries(), htemp.GetMean(), htemp.GetRMS()
     counts_min, counts_max = htemp.GetMinimum(), htemp.GetMaximum()
     drawable = True
-    # set log scale if htemp is drawable and the maximum/minimum is greater than tolerance
-    c.SetLogy(bool(counts_max/counts_max > logTolerance))
+
+    # set up the labeling correctly
     htemp.SetTitle(item['name'])
     htemp.SetXTitle(item['name'])
 
+    # set log scale if htemp is drawable and the maximum/minimum is greater than tolerance
+    c.SetLogy(bool(counts_max/counts_max > logTolerance))
+    
+    #color the fill of the canvas based on various issues
+    if entries == 0:
+      c.SetFillColor(ROOT.kRed)
+    elif mean != 0 and rms == 0:
+      c.SetFillColor(ROOT.kYellow)
+    elif mean == 0:
+      c.SetFillColor(ROOT.kOrange)
+    else:
+      c.SetFillColor(0)
+
     # no issues with drawing it
+    c.Update()  # why need this?
+    c.Modified()  # or this???
     c.SaveAs(pathToImage)
   del c
 
