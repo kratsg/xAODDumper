@@ -201,27 +201,37 @@ def inspect_tree(t):
   return xAOD_Objects
 
 @echo(write=dumpSG_logger.debug)
-def save_plot(item, container, width=700, height=500, formats=['png'], directory="report"):
+def save_plot(item, container, width=700, height=500, formats=['png'], directory="report", logTolerance=5.e2):
   pathToImage = "{0}.png".format(os.path.join(directory, item['name']))
   c = ROOT.TCanvas(item['name'], item['name'], 200, 10, width, height)
   t.Draw(item['rootname'])
-  c.SaveAs(pathToImage)
 
   # get histogram drawn and grab details
   htemp = c.GetPrimitive("htemp")
+  # set log scale if htemp is drawable and the maximum/minimum is greater than tolerance
+  if htemp:
+    c.SetLogy(bool(htemp.GetMaximum()/htemp.GetMinimum(0) > logTolerance))
+
+  c.SaveAs(pathToImage)
+
 
   # if it didn't draw a histogram, there was an error drawing it
   if htemp == None:
     entries, mean, rms =  0, 0.0, 0.0
     drawable = False
+    counts_min, counts_max = 0.0, 0.0
   else:
     entries, mean, rms =  htemp.GetEntries(), htemp.GetMean(), htemp.GetRMS()
+    counts_min, counts_max = htemp.GetMinimum(), htemp.GetMaximum()
     drawable = True
 
   item['entries'] = entries
   item['mean'] = mean
   item['rms'] = rms
   item['drawable'] = drawable
+  item['counts'] = {}
+  item['counts']['min'] = counts_min
+  item['counts']['max'] = counts_max
 
   if drawable:
     # let the user know that this has RMS=0 and may be of interest
