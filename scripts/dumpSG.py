@@ -201,8 +201,7 @@ def inspect_tree(t):
   return xAOD_Objects
 
 @echo(write=dumpSG_logger.debug)
-def save_plot(item, container, width=700, height=500, formats=['png'], directory="report", logTolerance=5.e2):
-  pathToImage = "{0}.png".format(os.path.join(directory, item['name']))
+def save_plot(pathToImage, item, container, width=700, height=500, formats=['png'], logTolerance=5.e2):
   c = ROOT.TCanvas(item['name'], item['name'], 200, 10, width, height)
   t.Draw(item['rootname'])
 
@@ -224,6 +223,8 @@ def save_plot(item, container, width=700, height=500, formats=['png'], directory
     htemp.SetXTitle(item['name'])
 
     # set log scale if htemp is drawable and the maximum/minimum is greater than tolerance
+    if bool(counts_max/counts_max > logTolerance):
+      dumpSG_logger.info("Tolerance exceeded for {0}. Switching to log scale.".format(item['name']))
     c.SetLogy(bool(counts_max/counts_max > logTolerance))
     
     #color the fill of the canvas based on various issues
@@ -239,7 +240,7 @@ def save_plot(item, container, width=700, height=500, formats=['png'], directory
     # no issues with drawing it
     c.Update()  # why need this?
     c.Modified()  # or this???
-    c.SaveAs(pathToImage)
+    c.Print(pathToImage, 'Title:{0}'.format(item['name']))
   del c
 
   item['entries'] = entries
@@ -272,15 +273,40 @@ def save_plot(item, container, width=700, height=500, formats=['png'], directory
       dumpSG_logger.info(detailErrString)
 
 @echo(write=dumpSG_logger.debug)
-def make_report(t, xAOD_Objects, directory="report"):
+def make_report(t, xAOD_Objects, directory="report", merge_report=False):
   for container, items in xAOD_Objects.iteritems():
-    sub_directory = os.path.join(directory,container)
-    if not os.path.exists(sub_directory):
-      os.makedirs(sub_directory)
-    for prop in items.get('prop', []):
-      save_plot(prop, container, directory=sub_directory)
-    for prop in items.get('attr', []):
-      save_plot(prop, container, directory=sub_directory)
+    # first start by making the report directory
+    if not os.path.exists(directory):
+      os.makedirs(directory)
+
+    # check if we want to merge
+    if merge_report:
+      # we do, so pathToImage is directory/container.pdf
+      pathToImage = os.path.join(directory, '{0}.pdf'.format(container))
+
+      # https://root.cern.ch/root/HowtoPS.html
+      # create a blank canvas for initializing the pdf
+      blankCanvas = ROOT.TCanvas()
+      # initialize the pdf
+      blankCanvas.Print('{0}['.format(pathToImage))
+    else:
+      # we don't so pathToImage is directory/container/item['name'].pdf
+      sub_directory = os.path.join(directory, container) 
+      if not os.path.exists(sub_directory):
+        os.makedirs(sub_directory)
+
+    for item in items.get('prop', []) + items.get('attr', []):
+      if not merge_report:
+        # if we aren't merging, the path to image is based on item['name']
+        pathToImage = os.path.join(sub_directory, '{0}.pdf'.format(item['name']))
+
+      save_plot(pathToImage, item, container)
+
+    if merge_report:
+      # finalize the pdf
+      blankCanvas.Print('{0}]'.format(pathToImage))
+      # clean up the memory for the next iteration in the loop
+      del blankCanvas
 
   with open(os.path.join(directory, "info.json"), 'w+') as f:
     f.write(json.dumps(xAOD_Objects, sort_keys=True, indent=4))
@@ -421,6 +447,10 @@ if __name__ == "__main__":
                       dest='make_report',
                       action='store_true',
                       help='Enable to also create a directory containing plots and generate additional reporting information/statistics. By default, this is turned off as it can be potentially slow. The output directory containing the plots will be named `xAODDumper_Report`.')
+  parser.add_argument('--merge-report',
+                      dest='merge_report',
+                      action='store_true',
+                      help='Enable to merge the generated report by container. By default, this is turned off.')
 
   # arguments for report coloring
   parser.add_argument('--noEntries',
@@ -508,7 +538,7 @@ if __name__ == "__main__":
 
       # next, make a report -- add in information about mean, RMS, entries
       if args.make_report:
-        make_report(t, filtered_xAOD_Objects, directory=args.output_directory)
+        make_report(t, filtered_xAOD_Objects, directory=args.output_directory, merge_report=args.merge_report)
 
       # dump to file
       dump_xAOD_objects(filtered_xAOD_Objects, args)
