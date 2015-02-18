@@ -378,35 +378,35 @@ if __name__ == "__main__":
                       type=str,
                       required=False,
                       dest='tree_name',
-                      help='Specify the tree that contains the StoreGate structure.',
+                      help='Specify the tree that contains the StoreGate structure. Default: CollectionTree',
                       default='CollectionTree')
   parser.add_argument('-o',
                       '--output',
                       type=str,
                       required=False,
                       dest='output_filename',
-                      help='Output file to store dumped information.',
+                      help='Output file to store dumped information. Default: info.dump',
                       default='info.dump')
   parser.add_argument('-d',
                       '--output_directory',
                       type=str,
                       required=False,
                       dest='output_directory',
-                      help='Output directory to store the report generated.',
+                      help='Output directory to store the report generated. Default: report',
                       default='report')
   parser.add_argument('-t',
                       '--type',
                       type=str,
                       required=False,
                       dest='container_type_regex',
-                      help='Regex specification for the xAOD container type. For example, --type="xAOD::Jet*" will match `xAOD::JetContainer` while --type="xAOD::*Jet*" will match `xAOD::TauJetContainer`. This uses Unix filename matching.',
+                      help='Regex specification for the xAOD container type. For example, --type="xAOD::Jet*" will match `xAOD::JetContainer` while --type="xAOD::*Jet*" will match `xAOD::TauJetContainer`. This uses Unix filename matching. Default: *',
                       default='*')
   parser.add_argument('-c',
                       '--container',
                       type=str,
                       required=False,
                       dest='container_name_regex',
-                      help='Regex specification for the xAOD container name. For example, --container="AntiKt10LCTopo*" will match `AntiKt10LCTopoJets`. This uses Unix filename matching.',
+                      help='Regex specification for the xAOD container name. For example, --container="AntiKt10LCTopo*" will match `AntiKt10LCTopoJets`. This uses Unix filename matching. Default: *',
                       default='*')
   parser.add_argument('-f',
                       '--format',
@@ -414,62 +414,62 @@ if __name__ == "__main__":
                       required=False,
                       dest='output_format',
                       choices=['json','pickle','pretty'],
-                      help='Specify the output format.',
+                      help='Specify the output format. Default: pretty',
                       default='pretty')
   parser.add_argument('-v',
                       '--verbose',
                       dest='verbose',
                       action='count',
                       default=0,
-                      help='Enable verbose output of various levels. Use --debug-root to enable ROOT debugging.')
+                      help='Enable verbose output of various levels. Use --debug-root to enable ROOT debugging. Default: no verbosity')
   parser.add_argument('--debug-root',
                       dest='root_verbose',
                       action='store_true',
-                      help='Enable ROOT debugging/output.')
+                      help='Enable ROOT debugging/output. Default: disabled')
   parser.add_argument('-b',
                       '--batch',
                       dest='batch_mode',
                       action='store_true',
-                      help='Enable batch mode for ROOT.')
+                      help='Enable batch mode for ROOT. Default: disabled')
   parser.add_argument('--has_aux',
                       dest='has_aux',
                       action='store_true',
-                      help='Enable to only include containers which have an auxillary container. By default, it includes all containers it can find.')
+                      help='Enable to only include containers which have an auxillary container. By default, it includes all containers it can find. Default: disabled')
   parser.add_argument('--prop',
                       dest='list_properties',
                       action='store_true',
-                      help='Enable to print properties of container. By default, it only prints the xAOD::ContainerType and containers for that given type. This is like an increased verbosity option for container properties.')
+                      help='Enable to print properties of container. By default, it only prints the xAOD::ContainerType and containers for that given type. This is like an increased verbosity option for container properties. Default: disabled')
   parser.add_argument('--attr',
                       dest='list_attributes',
                       action='store_true',
-                      help='Enable to print attributes of container. By default, it only prints the xAOD::ContainerType and containers for that given type. This is like an increased verbosity option for container attributes.')
+                      help='Enable to print attributes of container. By default, it only prints the xAOD::ContainerType and containers for that given type. This is like an increased verbosity option for container attributes. Default: disabled')
   parser.add_argument('--report',
                       dest='make_report',
                       action='store_true',
-                      help='Enable to also create a directory containing plots and generate additional reporting information/statistics. By default, this is turned off as it can be potentially slow. The output directory containing the plots will be named `xAODDumper_Report`.')
+                      help='Enable to also create a directory containing plots and generate additional reporting information/statistics. By default, this is turned off as it can be potentially slow. The output directory containing the plots will be named `xAODDumper_Report`. Default: disabled')
   parser.add_argument('--merge-report',
                       dest='merge_report',
                       action='store_true',
-                      help='Enable to merge the generated report by container. By default, this is turned off.')
+                      help='Enable to merge the generated report by container. By default, this is turned off. Default: disabled')
 
   # arguments for report coloring
   parser.add_argument('--noEntries',
                       type=str,
                       required=False,
                       dest='no_entries',
-                      help='If a plot generated by a report has no entries, color it with this ROOT color value, eg: kRed',
+                      help='If a plot generated by a report has no entries, color it with this ROOT color value. Default: kRed',
                       default='kRed')
   parser.add_argument('--noRMS',
                       type=str,
                       required=False,
                       dest='no_rms',
-                      help='If a plot generated by a report has RMS = 0.0 (mean != 0.0), color it with this ROOT color value, eg: kYellow',
+                      help='If a plot generated by a report has RMS = 0.0 (mean != 0.0), color it with this ROOT color value. Default: kYellow',
                       default='kYellow')
   parser.add_argument('--noMean',
                       type=str,
                       required=False,
                       dest='no_mean',
-                      help='If a plot generated by a report has mean = 0.0, color it with this ROOT color value, eg: kOrange',
+                      help='If a plot generated by a report has mean = 0.0, color it with this ROOT color value. Default: kOrange',
                       default='kOrange')
 
   # additional selections on properties and attributes
