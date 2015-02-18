@@ -285,11 +285,9 @@ def make_report(t, xAOD_Objects, directory="report", merge_report=False):
     if merge_report:
       # we do, so pathToImage is directory/container.pdf
       pathToImage = os.path.join(directory, '{0}.pdf'.format(container))
-
       # https://root.cern.ch/root/HowtoPS.html
       # create a blank canvas for initializing the pdf
       blankCanvas = ROOT.TCanvas()
-      # initialize the pdf
       blankCanvas.Print('{0}['.format(pathToImage))
     else:
       # we don't so pathToImage is directory/container/item['name'].pdf
@@ -305,9 +303,9 @@ def make_report(t, xAOD_Objects, directory="report", merge_report=False):
       save_plot(pathToImage, item, container)
 
     if merge_report:
-      # finalize the pdf
-      blankCanvas.Print('{0}]'.format(pathToImage))
-      # clean up the memory for the next iteration in the loop
+      # finalize the pdf, note -- due to a bug, you need to close with the last title
+      #     even though it was written inside save_plot() otherwise, it won't save right
+      blankCanvas.Print('{0}]'.format(pathToImage), 'Title:{0}'.format(item['name']))
       del blankCanvas
 
   with open(os.path.join(directory, "info.json"), 'w+') as f:
