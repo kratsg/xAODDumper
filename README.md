@@ -14,6 +14,59 @@ dumpSG.py <input file> *kwargs
 ### Functionality Included
  - `dumpSG.py` is a python script (a ROOT macro of sorts) used to inspect information about a ROOT file. It should be self-documented via `dumpSG.py --help`.
 
+#### Example Usage
+
+Quick start. Outputs all types and containers in the file in a pretty-print format. Output file is 'info.dump'.
+```
+dumpSG.py input.root
+```
+
+Change the output format to json for more detailed reporting.
+```
+dumpSG.py input.root -f json
+```
+
+Use `ROOT::TChain` to add multiple input xAOD ROOT files for analysis. Note that an implicit assumption is all the ROOT files correspond to the same AthAnalysisBase release and have the same set of branches and leaves. Unexpected behavior can occur if they do not.
+```
+dumpSG.py mc14_13TeV.110401.PowhegPythia_P2012_ttbar_nonallhad.merge.DAOD_SUSY4.e2928_s1982_s2008_r5787_r5853_*/*.root
+```
+
+Print out more verbose information about the attributes and properties for all containers
+```
+dumpSG.py input.root --prop --attr
+```
+
+Filter the xAOD types being used, such as allowing only `xAOD::JetContainer` or `xAOD::JetEtRoIInfo`
+```
+dumpSG.py input.root --type="xAOD::Jet*"
+```
+
+Filter the xAOD containers being used, such as allowing only `AntiKt10` algorithms
+```
+dumpSG.py input.root --container="*AntiKt10*"
+```
+
+Create a directory of reports across the containers
+```
+dumpSG.py input.root --report
+```
+
+and sometimes, you might be running on X11 or a similar agent so you want to run this in batch mode since we use `ROOT::TTree::Draw` to build our plots
+```
+dumpSG.py input.root --report -b
+```
+
+and sometimes you want to make multiple reports for multiple datasets so you configure the output directory
+```
+dumpSG.py input.root -d input --report -b
+```
+
+and sometimes you prefer to have individual PDFs instead merging all the information plotted for a given container
+```
+dumpSG.py input.root -d report --merge-report -b
+```
+
+
 ### [dumpSG.py](scripts/dumpSG.py)
 ```
 usage: dumpSG.py filename [filename] [options]
