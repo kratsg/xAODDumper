@@ -145,3 +145,6 @@ optional arguments:
 
 #### Authors
 - [Giordon Stark](https://github.com/kratsg)
+
+#### Acknowledgements
+- Thanks to [David Miller](http://fizisist.web.cern.ch/fizisist/Welcome.html) for the comments, critiques, and extensive testing. And basically being a bad-ass.
