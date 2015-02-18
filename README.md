@@ -66,6 +66,18 @@ dumpSG.py <input file> *kwargs
   dumpSG.py input.root -d report --merge-report -b
   ```
 
+* if a job does not run correctly, we can increase the verbosity level with the python execution or root execution
+   ```
+   dumpSG.py input.root -v
+   dumpSG.py input.root -vv
+   dumpSG.py input.root -vvvvvv
+   ```
+
+   or
+
+   ```
+   dumpSG.py input.root --debug-root
+   ```
 
 ### [dumpSG.py](scripts/dumpSG.py)
 ```
