@@ -215,7 +215,9 @@ def save_plot(pathToImage, item, container, width=700, height=500, formats=['png
   else:
     # we didn't have an error drawing it, let's apply makeup
     entries, mean, rms =  htemp.GetEntries(), htemp.GetMean(), htemp.GetRMS()
-    counts_min, counts_max = htemp.GetMinimum(), htemp.GetMaximum()
+    # note that the absolute minimum is X > 0 [so 1 is the minimum value we obtain]
+    #   this fixes the divide-by-zero error we would get
+    counts_min, counts_max = htemp.GetMinimum(0), htemp.GetMaximum()
     drawable = True
 
     # set up the labeling correctly
@@ -223,9 +225,9 @@ def save_plot(pathToImage, item, container, width=700, height=500, formats=['png
     htemp.SetXTitle(item['name'])
 
     # set log scale if htemp is drawable and the maximum/minimum is greater than tolerance
-    if bool(counts_max/counts_max > logTolerance):
+    if bool(counts_max/counts_min > logTolerance):
       dumpSG_logger.info("Tolerance exceeded for {0}. Switching to log scale.".format(item['name']))
-    c.SetLogy(bool(counts_max/counts_max > logTolerance))
+    c.SetLogy(bool(counts_max/counts_min > logTolerance))
     
     #color the fill of the canvas based on various issues
     if entries == 0:
