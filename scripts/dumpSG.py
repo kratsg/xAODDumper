@@ -65,7 +65,7 @@ except:
     if not args.root_verbose:
       ROOT.gSystem.RedirectOutput(tmpFile.name, "w")
 
-    # execute code here  
+    # execute code here
 
     if not args.root_verbose:
       ROOT.gROOT.ProcessLine("gSystem->RedirectOutput(0);")
@@ -76,7 +76,7 @@ import ROOT
 
 def format_arg_value(arg_val):
   """ Return a string representing a (name, value) pair.
-  
+
   >>> format_arg_value(('x', (1, 2, 3)))
   'x=(1, 2, 3)'
   """
@@ -89,7 +89,7 @@ def echo(*echoargs, **echokwargs):
   dumpSG_logger.debug(echokwargs)
   def echo_wrap(fn):
     """ Echo calls to a function.
-    
+
     Returns a decorated version of the input function which "echoes" calls
     made to it by writing out the function's name and the arguments it was
     called with.
@@ -136,7 +136,7 @@ def inspect_tree(t):
   '''
 
   # list of properties and methods given Container Name
-  xAOD_Objects = defaultdict(lambda: {'prop': [], 'attr': [], 'type': None, 'has_aux': False, 'rootname': None})  
+  xAOD_Objects = defaultdict(lambda: {'prop': [], 'attr': [], 'type': None, 'has_aux': False, 'rootname': None})
 
   # lots of regex to pass things around and figure out structure
   xAOD_Container_Name = re.compile('^([^:]*)(?<!\.)$')
@@ -179,7 +179,7 @@ def inspect_tree(t):
       container, attribute = m_cont_attr.groups()
       if 'btagging' in attribute.lower():
         # print attribute, "|", elName, "|", elType
-        ''' 
+        '''
         David found an issue where instead of expecting something that looks like
             btaggingLink | AntiKt10LCTopoJetsAuxDyn.btaggingLink | ElementLink<DataVector<xAOD::BTagging> >
         it instead looks like
@@ -197,16 +197,24 @@ def inspect_tree(t):
       container, = m_cont_name.groups()
       xAOD_Objects[container]['type'] = xAOD_Objects[container]['type'] or elType
       xAOD_Objects[container]['rootname'] = xAOD_Objects[container]['rootname'] or elName
- 
+
   return xAOD_Objects
 
 @echo(write=dumpSG_logger.debug)
 def save_plot(pathToImage, item, container, width=700, height=500, formats=['png'], logTolerance=5.e2):
-  c = ROOT.TCanvas(item['name'], item['name'], 200, 10, width, height)
-  t.Draw(item['rootname'])
 
-  # get histogram drawn and grab details
-  htemp = c.GetPrimitive("htemp")
+  tryToDraw = True
+  htemp = None
+  if 'ElementLink' in item['type']:  # ElementLink type is more or less broken
+    tryToDraw = False
+
+  if tryToDraw:
+    c = ROOT.TCanvas(item['name'], item['name'], 200, 10, width, height)
+    t.Draw(item['rootname'])
+
+    # get histogram drawn and grab details
+    htemp = c.GetPrimitive("htemp")
+
   # if it didn't draw a histogram, there was an error drawing it
   if htemp == None:
     entries, mean, rms =  0, 0.0, 0.0
@@ -228,7 +236,7 @@ def save_plot(pathToImage, item, container, width=700, height=500, formats=['png
     if bool(counts_max/counts_min > logTolerance):
       dumpSG_logger.info("Tolerance exceeded for {0}. Switching to log scale.".format(item['name']))
     c.SetLogy(bool(counts_max/counts_min > logTolerance))
-    
+
     #color the fill of the canvas based on various issues
     if entries == 0:
       c.SetFillColor(getattr(ROOT, args.no_entries))
@@ -244,8 +252,9 @@ def save_plot(pathToImage, item, container, width=700, height=500, formats=['png
     c.Modified()  # or this???
     # https://sft.its.cern.ch/jira/browse/ROOT-7087
     #   cannot have Vertex in name
-    c.Print(pathToImage, 'Title:{0}'.format(item['name'].replace('Vertex','Giordon')))
-  del c
+    c.Print(pathToImage, 'Title:{0}'.format(item['name'].replace('tex','tek')))
+  if tryToDraw:  # we tried to draw it
+    del c
 
   item['entries'] = entries
   item['mean'] = mean
@@ -275,40 +284,60 @@ def save_plot(pathToImage, item, container, width=700, height=500, formats=['png
     else:
       dumpSG_logger.warning(errString.format("couldn't be drawn"))
       dumpSG_logger.info(detailErrString)
+  return drawable
 
 @echo(write=dumpSG_logger.debug)
 def make_report(t, xAOD_Objects, directory="report", merge_report=False):
   # first start by making the report directory
   if not os.path.exists(directory):
     os.makedirs(directory)
-  for container, items in xAOD_Objects.iteritems():
+  for container, containerVals in xAOD_Objects.iteritems():
+    propsAndAttrs = containerVals.get('prop', [])+containerVals.get('attr', [])
 
-    # check if we want to merge
-    if merge_report:
-      # we do, so pathToImage is directory/container.pdf
-      pathToImage = os.path.join(directory, '{0}.pdf'.format(container))
-      # https://root.cern.ch/root/HowtoPS.html
-      # create a blank canvas for initializing the pdf
-      blankCanvas = ROOT.TCanvas()
-      blankCanvas.Print('{0}['.format(pathToImage))
-    else:
-      # we don't so pathToImage is directory/container/item['name'].pdf
-      sub_directory = os.path.join(directory, container) 
-      if not os.path.exists(sub_directory):
-        os.makedirs(sub_directory)
+    numDrawn = 0
+    # only make stuff if stuff exists
+    if propsAndAttrs:
+      # check if we want to merge
+      if merge_report:
+        # we do, so pathToImage is directory/container.pdf
+        pathToImage = os.path.join(directory, '{0}.pdf'.format(container))
+        # https://root.cern.ch/root/HowtoPS.html
+        # create a blank canvas for initializing the pdf
+        blankCanvas = ROOT.TCanvas()
+        blankCanvas.Print('{0}['.format(pathToImage))
+      else:
+        # we don't so pathToImage is directory/container/item['name'].pdf
+        sub_directory = os.path.join(directory, container)
+        if not os.path.exists(sub_directory):
+          os.makedirs(sub_directory)
 
-    for item in items.get('prop', []) + items.get('attr', []):
-      if not merge_report:
-        # if we aren't merging, the path to image is based on item['name']
-        pathToImage = os.path.join(sub_directory, '{0}.pdf'.format(item['name']))
+      for item in propsAndAttrs:
+        if not merge_report:
+          # if we aren't merging, the path to image is based on item['name']
+          pathToImage = os.path.join(sub_directory, '{0}.pdf'.format(item['name']))
 
-      save_plot(pathToImage, item, container)
+        numDrawn += save_plot(pathToImage, item, container)
 
-    if merge_report:
-      # finalize the pdf, note -- due to a bug, you need to close with the last title
-      #     even though it was written inside save_plot() otherwise, it won't save right
-      blankCanvas.Print('{0}]'.format(pathToImage), 'Title:{0}'.format(item['name'].replace('Vertex','Giordon')))
-      del blankCanvas
+      if merge_report:
+        # finalize the pdf, note -- due to a bug, you need to close with the last title
+        #     even though it was written inside save_plot() otherwise, it won't save right
+        blankCanvas.Print('{0}]'.format(pathToImage), 'Title:{0}'.format(item['name'].replace('tex','tek')))
+        del blankCanvas
+
+      if numDrawn == 0:
+        dumpSG_logger.info("{0} has no drawable children elements.".format(container))
+        # we were unable to draw anything
+        if merge_report:
+          dumpSG_logger.info("\tRemoving the file: {0}".format(pathToImage))
+          # so delete the merged PDF file
+          os.remove(pathToImage)
+        else:
+          dumpSG_logger.info("\tRemoving the directory: {0}".format(sub_directory))
+          # so delete the directory
+          os.rmdir(sub_directory)
+
+    # add the number of plots drawn
+    containerVals['drawn'] = numDrawn
 
   with open(os.path.join(directory, "info.json"), 'w+') as f:
     f.write(json.dumps(xAOD_Objects, sort_keys=True, indent=4))
