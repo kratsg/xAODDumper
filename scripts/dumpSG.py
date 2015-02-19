@@ -276,10 +276,10 @@ def save_plot(pathToImage, item, container, width=700, height=500, formats=['png
 
 @echo(write=dumpSG_logger.debug)
 def make_report(t, xAOD_Objects, directory="report", merge_report=False):
+  # first start by making the report directory
+  if not os.path.exists(directory):
+    os.makedirs(directory)
   for container, items in xAOD_Objects.iteritems():
-    # first start by making the report directory
-    if not os.path.exists(directory):
-      os.makedirs(directory)
 
     # check if we want to merge
     if merge_report:
