@@ -242,7 +242,9 @@ def save_plot(pathToImage, item, container, width=700, height=500, formats=['png
     # no issues with drawing it
     c.Update()  # why need this?
     c.Modified()  # or this???
-    c.Print(pathToImage, 'Title:{0}'.format(item['name']))
+    # https://sft.its.cern.ch/jira/browse/ROOT-7087
+    #   cannot have Vertex in name
+    c.Print(pathToImage, 'Title:{0}'.format(item['name'].replace('Vertex','Giordon')))
   del c
 
   item['entries'] = entries
@@ -305,7 +307,7 @@ def make_report(t, xAOD_Objects, directory="report", merge_report=False):
     if merge_report:
       # finalize the pdf, note -- due to a bug, you need to close with the last title
       #     even though it was written inside save_plot() otherwise, it won't save right
-      blankCanvas.Print('{0}]'.format(pathToImage), 'Title:{0}'.format(item['name']))
+      blankCanvas.Print('{0}]'.format(pathToImage), 'Title:{0}'.format(item['name'].replace('Vertex','Giordon')))
       del blankCanvas
 
   with open(os.path.join(directory, "info.json"), 'w+') as f:
