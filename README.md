@@ -63,7 +63,7 @@ dumpSG.py <input file> *kwargs
 
 * and sometimes you prefer to have individual PDFs instead merging all the information plotted for a given container
   ```
-  dumpSG.py input.root -d report --merge-report -b
+  dumpSG.py input.root -d report --report --merge-report -b
   ```
 
 * if a job does not run correctly, we can increase the verbosity level with the python execution or root execution
