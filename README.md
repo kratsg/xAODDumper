@@ -1,10 +1,10 @@
 # xAODDumper - A RootCore Package
 
 ## Installing
-The last stable analysis base used is **2.0.23**. To install,
+The last stable analysis base used is **2.0.25**. To install,
 ```bash
 mkdir myRootCore && cd myRootCore
-rcSetup Base,2.0.23
+rcSetup Base,2.0.25
 git clone https://github.com/kratsg/xAODDumper.git
 rc find_packages
 rc compile
