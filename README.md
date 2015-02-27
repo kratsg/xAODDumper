@@ -155,8 +155,11 @@ optional arguments:
                         properties.
 ```
 
-#### Authors
+### Known Bugs
+- HLT Jets and other objects that are typed `AuxByteStreamContainer` are not easily introspected
+
+### Authors
 - [Giordon Stark](https://github.com/kratsg)
 
-#### Acknowledgements
+### Acknowledgements
 - Thanks to [David Miller](http://fizisist.web.cern.ch/fizisist/Welcome.html) for the comments, critiques, and extensive testing. And basically being a bad-ass.
