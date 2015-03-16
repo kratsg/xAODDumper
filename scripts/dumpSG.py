@@ -74,6 +74,24 @@ except:
 # Set up ROOT
 import ROOT
 
+
+# human readable bytes
+import math
+unit_list = zip(['bytes', 'kB', 'MB', 'GB', 'TB', 'PB'], [0, 0, 1, 2, 2, 2])
+def sizeof_fmt(num):
+    """Human friendly file size"""
+    if num > 1:
+        exponent = min(int(math.log(num, 1024)), len(unit_list) - 1)
+        quotient = float(num) / 1024**exponent
+        unit, num_decimals = unit_list[exponent]
+        format_string = '{:.%sf} {}' % (num_decimals)
+        return format_string.format(quotient, unit)
+    if num == 0:
+        return '0 bytes'
+    if num == 1:
+        return '1 byte'
+
+
 def format_arg_value(arg_val):
   """ Return a string representing a (name, value) pair.
 
@@ -136,7 +154,7 @@ def inspect_tree(t):
   '''
 
   # list of properties and methods given Container Name
-  xAOD_Objects = defaultdict(lambda: {'prop': [], 'attr': [], 'type': None, 'has_aux': False, 'rootname': None})
+  xAOD_Objects = defaultdict(lambda: {'prop': [], 'attr': [], 'type': None, 'has_aux': False, 'rootname': None, 'totbytes': 0, 'filebytes': 0})
 
   # lots of regex to pass things around and figure out structure
   xAOD_Container_Name = re.compile('^([^:]*)(?<!\.)$')
@@ -164,16 +182,25 @@ def inspect_tree(t):
     m_cont_prop = xAOD_Container_Prop.search(elName)
     m_cont_attr = xAOD_Container_Attr.search(elName)
 
+    # get size information
+    totbytes = el.GetBranch().GetTotalSize()
+    filebytes = el.GetBranch().GetZipBytes()
+
+
     # set the type
     if m_aux_name:
       container, = m_aux_name.groups()
       xAOD_Objects[container]['type'] = elType
       xAOD_Objects[container]['has_aux'] = True  # we found the aux for it
       xAOD_Objects[container]['rootname'] = elName
+      # always add bytes to the parent container, regardless of what we're doing
+      xAOD_Objects[container]['totbytes'] += totbytes
+      xAOD_Objects[container]['filebytes'] += filebytes
+
     # set the property
     elif m_cont_prop:
       container, property = m_cont_prop.groups()
-      xAOD_Objects[container]['prop'].append({'name': property, 'type': elType, 'rootname': elName})
+      xAOD_Objects[container]['prop'].append({'name': property, 'type': elType, 'rootname': elName, 'totbytes': totbytes, 'filebytes': filebytes})
     # set the attribute
     elif m_cont_attr:
       container, attribute = m_cont_attr.groups()
@@ -189,15 +216,17 @@ def inspect_tree(t):
         if btaggingType:
           elType = btaggingType.groups()[0] + ' *'
         attribute = attribute.replace('Link','')
-        xAOD_Objects[container]['prop'].append({'name': attribute, 'type': elType, 'rootname': elName})
+        xAOD_Objects[container]['prop'].append({'name': attribute, 'type': elType, 'rootname': elName, 'totbytes': totbytes, 'filebytes': filebytes})
       else:
-        xAOD_Objects[container]['attr'].append({'name': attribute, 'type': elType, 'rootname': elName})
+        xAOD_Objects[container]['attr'].append({'name': attribute, 'type': elType, 'rootname': elName, 'totbytes': totbytes, 'filebytes': filebytes})
     elif m_cont_name:
       # initialize with defaults if not set already
       container, = m_cont_name.groups()
       xAOD_Objects[container]['type'] = xAOD_Objects[container]['type'] or elType
       xAOD_Objects[container]['rootname'] = xAOD_Objects[container]['rootname'] or elName
-
+      # always add bytes to the parent container, regardless of what we're doing
+      xAOD_Objects[container]['totbytes'] += totbytes
+      xAOD_Objects[container]['filebytes'] += filebytes
   return xAOD_Objects
 
 @echo(write=dumpSG_logger.debug)
@@ -344,14 +373,75 @@ def make_report(t, xAOD_Objects, directory="report", merge_report=False):
 
   return True
 
+#TODO: create it for each container as well automatically, this is for each type
+@echo(write=dumpSG_logger.debug)
+def make_size_report(t, xAOD_Objects, directory="report"):
+  total = {'totbytes': 0, 'filebytes': 0}
+
+  # first start by making the report directory
+  if not os.path.exists(directory):
+    os.makedirs(directory)
+  sizeByType = defaultdict(lambda: {'totbytes': 0, 'filebytes': 0})
+  for ContainerName, Elements in sorted(xAOD_Objects.items(), key=lambda (k,v): (v['type'].lower(), k.lower())):
+    sizeByType[Elements['type']]['totbytes'] += Elements['totbytes']
+    sizeByType[Elements['type']]['filebytes'] += Elements['filebytes']
+    total['totbytes'] += Elements['totbytes']
+    total['filebytes'] += Elements['filebytes']
+
+  width = 1200
+  height = 1000
+  blankCanvas = ROOT.TCanvas("test", "", width, height)
+  blankCanvas.Print('{0}['.format('sizes.pdf'))
+
+  # manually set the list of "good" colors to use for the piechart
+  validColors = [2, 4, 6, 8, 9, 11, 12, 15, 20, 28, 29, 30, 33, 36, 38, 41, 43, 46]
+
+  for title, key in [('On-Disk Size', 'filebytes'), ('In-Mem Size', 'totbytes')]:
+    c = ROOT.TCanvas("MyCanvas", "", width, height)
+    pie = ROOT.TPie("%s_pie" % title, "%s: %s" % (title, sizeof_fmt(total[key])), len(sizeByType))
+    # need to use enumerate for TPie
+    for i, containerType in enumerate(sizeByType):
+      sizes = sizeByType[containerType]
+      pie.SetEntryVal(i, sizes[key])
+      pie.SetEntryFillColor(i, validColors[i%len(validColors)])
+
+      if float(sizes[key])/float(total[key]) > 0.05:
+        pie.SetEntryRadiusOffset(i, 0.03)
+        pie.SetEntryLabel(i, "#splitline{%s}{          (%%perc)}" % containerType)
+      else:
+        pie.SetEntryLabel(i, "")
+
+    pie.SetRadius(0.2)
+    pie.SetTextSize(0.02)
+    pie.SetAngularOffset(90.)
+    pie.SetHeight(0.1)
+    pie.SetAngle3D(100.0)
+    pie.SetY(0.6)
+
+    pie.Draw("3D NOL SC <")
+    c.Print('sizes.pdf', 'Title:{0}'.format(title))
+    del pie, c
+
+  blankCanvas.Print('{0}]'.format('sizes.pdf'), 'Title:{0}'.format(title))
+  del blankCanvas
+
+  return True
+
 @echo(write=dumpSG_logger.debug)
 def filter_xAOD_objects(xAOD_Objects, args):
   p_container_name = re.compile(fnmatch.translate(args.container_name_regex))
   p_container_type = re.compile(fnmatch.translate(args.container_type_regex))
 
   # Python Level: EXPERT MODE
-  filtered_xAOD_Objects = {k:{prop:val for prop, val in v.iteritems() if (args.list_properties and prop=='prop') or (args.list_attributes and prop=='attr') or prop in ['type','has_aux','rootname']} for (k,v) in xAOD_Objects.iteritems() if p_container_name.match(k) and p_container_type.match(v['type']) and (not args.has_aux or v['has_aux']) }
+  filtered_xAOD_Objects = {k:{prop:val for prop, val in v.iteritems() if (args.list_properties and prop=='prop') or (args.list_attributes and prop=='attr') or prop not in ['prop','attr']} for (k,v) in xAOD_Objects.iteritems() if p_container_name.match(k) and p_container_type.match(v['type']) and (not args.has_aux or v['has_aux']) }
   return filtered_xAOD_Objects
+
+@echo(write=dumpSG_logger.debug)
+def update_sizes(xAOD_Objects):
+  for ContainerName, Elements in xAOD_Objects.iteritems():
+    Elements['totbytes'] += reduce(lambda a,d: a+d.get('totbytes', 0), Elements.get('prop', []) + Elements.get('attr', []), 0)
+    Elements['filebytes'] += reduce(lambda a,d: a+d.get('filebytes', 0), Elements.get('prop', []) + Elements.get('attr', []), 0)
+  return True
 
 @echo(write=dumpSG_logger.debug)
 def dump_pretty(xAOD_Objects, f):
@@ -482,6 +572,10 @@ if __name__ == "__main__":
                       dest='merge_report',
                       action='store_true',
                       help='Enable to merge the generated report by container. By default, this is turned off. Default: disabled')
+  parser.add_argument('--size',
+                      dest='make_size_report',
+                      action='store_true',
+                      help='Enable to build a pie chart of the size distributions in memory and on-disk. By default, this is turned off. Default: disabled')
 
   # arguments for report coloring
   parser.add_argument('--noEntries',
@@ -567,9 +661,14 @@ if __name__ == "__main__":
       # next, use the filters to cut down the dictionaries for outputting
       filtered_xAOD_Objects = filter_xAOD_objects(xAOD_Objects, args)
 
+      update_sizes(filtered_xAOD_Objects)
+
       # next, make a report -- add in information about mean, RMS, entries
       if args.make_report:
         make_report(t, filtered_xAOD_Objects, directory=args.output_directory, merge_report=args.merge_report)
+
+      if args.make_size_report:
+        make_size_report(t, filtered_xAOD_Objects, directory=args.output_directory)
 
       # dump to file
       dump_xAOD_objects(filtered_xAOD_Objects, args)
