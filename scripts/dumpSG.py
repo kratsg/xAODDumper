@@ -373,6 +373,61 @@ def make_report(t, xAOD_Objects, directory="report", merge_report=False):
 
   return True
 
+@echo(write=dumpSG_logger.debug)
+def make_size_report_pie(t, xAOD_Objects, directory="report"):
+  total = {'totbytes': 0, 'filebytes': 0}
+
+  # first start by making the report directory
+  if not os.path.exists(directory):
+    os.makedirs(directory)
+  sizeByType = defaultdict(lambda: {'totbytes': 0, 'filebytes': 0})
+  for ContainerName, Elements in sorted(xAOD_Objects.items(), key=lambda (k,v): (v['type'].lower(), k.lower())):
+    sizeByType[Elements['type']]['totbytes'] += Elements['totbytes']
+    sizeByType[Elements['type']]['filebytes'] += Elements['filebytes']
+    total['totbytes'] += Elements['totbytes']
+    total['filebytes'] += Elements['filebytes']
+
+  width = 1200
+  height = 1000
+  blankCanvas = ROOT.TCanvas("test", "", width, height)
+  blankCanvas.Print('{0}['.format('sizes.pdf'))
+
+  # manually set the list of "good" colors to use for the piechart
+  validColors = [2, 4, 6, 8, 9, 11, 12, 15, 20, 28, 29, 30, 33, 36, 38, 41, 43, 46]
+
+  for title, key in [('On-Disk Size', 'filebytes'), ('In-Mem Size', 'totbytes')]:
+    c = ROOT.TCanvas("MyCanvas", "", width, height)
+    pie = ROOT.TPie("%s_pie" % title, "%s: %s" % (title, sizeof_fmt(total[key])), len(sizeByType))
+    # need to use enumerate for TPie
+    for i, containerType in enumerate(sizeByType):
+      sizes = sizeByType[containerType]
+      pie.SetEntryVal(i, sizes[key])
+      pie.SetEntryFillColor(i, validColors[i%len(validColors)])
+
+      if float(sizes[key])/float(total[key]) > 0.05:
+        pie.SetEntryRadiusOffset(i, 0.03)
+        pie.SetEntryLabel(i, "#splitline{%s}{          (%%perc)}" % containerType)
+      else:
+        pie.SetEntryLabel(i, "")
+
+    pie.SetRadius(0.2)
+    pie.SetTextSize(0.02)
+    pie.SetAngularOffset(90.)
+    pie.SetHeight(0.1)
+    pie.SetAngle3D(100.0)
+    pie.SetY(0.6)
+
+    pie.Draw("3D NOL SC <")
+    c.Print('sizes.pdf', 'Title:{0}'.format(title))
+    del pie, c
+
+  blankCanvas.Print('{0}]'.format('sizes.pdf'), 'Title:{0}'.format(title))
+  del blankCanvas
+
+  return True
+
+
+
 #TODO: create it for each container as well automatically, this is for each type
 @echo(write=dumpSG_logger.debug)
 def make_size_report(t, xAOD_Objects, directory="report"):
