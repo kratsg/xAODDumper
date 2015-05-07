@@ -1,15 +1,16 @@
 # xAODDumper - A RootCore Package
 
 ## Installing
-The last stable analysis base used is **2.0.25**. To install,
+This will work on (most) xAODs in (most) a given AnalysisBase release. To install,
+
 ```bash
-mkdir myRootCore && cd myRootCore
-rcSetup Base,2.0.25
 git clone https://github.com/kratsg/xAODDumper.git
 rc find_packages
 rc compile
 dumpSG.py <input file> *kwargs
 ```
+
+It has been tested on Rel19 xAODs, Rel20 xAODs, DxAODs, mc14, and mc15 datasets. That is literally amazing!
 
 ### Functionality Included
  - `dumpSG.py` is a python script (a ROOT macro of sorts) used to inspect information about a ROOT file. It should be self-documented via `dumpSG.py --help`.
