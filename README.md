@@ -1,3 +1,19 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [xAODDumper - A RootCore Package](#xaoddumper---a-rootcore-package)
+  - [Installing](#installing)
+    - [Functionality Included](#functionality-included)
+      - [Example Usage](#example-usage)
+      - [Understanding physical sizes of the containers](#understanding-physical-sizes-of-the-containers)
+    - [[dumpSG.py](scripts/dumpSG.py)](#dumpsgpyscriptsdumpsgpy)
+    - [Known Bugs](#known-bugs)
+    - [Authors](#authors)
+    - [Acknowledgements](#acknowledgements)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # xAODDumper - A RootCore Package
 
 ## Installing
