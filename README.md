@@ -4,12 +4,12 @@
 
 - [xAODDumper - A RootCore Package](#xaoddumper---a-rootcore-package)
   - [Installing](#installing)
-    - [Functionality Included](#functionality-included)
+  - [Functionality Included](#functionality-included)
       - [Example Usage](#example-usage)
-      - [Understanding physical sizes of the containers](#understanding-physical-sizes-of-the-containers)
+    - [Understanding physical sizes of the containers](#understanding-physical-sizes-of-the-containers)
     - [[dumpSG.py](scripts/dumpSG.py)](#dumpsgpyscriptsdumpsgpy)
     - [Known Bugs](#known-bugs)
-    - [Authors](#authors)
+  - [Authors](#authors)
     - [Acknowledgements](#acknowledgements)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
@@ -28,7 +28,7 @@ dumpSG.py <input file> *kwargs
 
 It has been tested on Rel19 xAODs, Rel20 xAODs, DxAODs, mc14, and mc15 datasets. That is literally amazing!
 
-### Functionality Included
+## Functionality Included
  - `dumpSG.py` is a python script (a ROOT macro of sorts) used to inspect information about a ROOT file. It should be self-documented via `dumpSG.py --help`.
 
 #### Example Usage
@@ -96,7 +96,7 @@ It has been tested on Rel19 xAODs, Rel20 xAODs, DxAODs, mc14, and mc15 datasets.
    dumpSG.py input.root --debug-root
    ```
 
-#### Understanding physical sizes of the containers
+### Understanding physical sizes of the containers
 
 ```
 dumpSG.py input.root --format json --size --attr -b
@@ -189,7 +189,7 @@ optional arguments:
 ### Known Bugs
 - HLT Jets and other objects that are typed `AuxByteStreamContainer` are not easily introspected
 
-### Authors
+## Authors
 - [Giordon Stark](https://github.com/kratsg)
 
 ### Acknowledgements
