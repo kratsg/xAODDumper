@@ -138,7 +138,7 @@ def echo(*echoargs, **echokwargs):
     return echo_wrap(echoargs[0])
   return echo_wrap
 
-@echo(write=dumpSG_logger.debug)
+#@echo(write=dumpSG_logger.debug)
 def inspect_tree(t):
   '''
   filter based on the 4 elements:
@@ -229,7 +229,7 @@ def inspect_tree(t):
       xAOD_Objects[container]['filebytes'] += filebytes
   return xAOD_Objects
 
-@echo(write=dumpSG_logger.debug)
+#@echo(write=dumpSG_logger.debug)
 def save_plot(pathToImage, item, container, width=700, height=500, formats=['png'], logTolerance=5.e2):
 
   tryToDraw = True
@@ -315,7 +315,7 @@ def save_plot(pathToImage, item, container, width=700, height=500, formats=['png
       dumpSG_logger.info(detailErrString)
   return drawable
 
-@echo(write=dumpSG_logger.debug)
+#@echo(write=dumpSG_logger.debug)
 def make_report(t, xAOD_Objects, directory="report", merge_report=False):
   # first start by making the report directory
   if not os.path.exists(directory):
@@ -373,7 +373,7 @@ def make_report(t, xAOD_Objects, directory="report", merge_report=False):
 
   return True
 
-@echo(write=dumpSG_logger.debug)
+#@echo(write=dumpSG_logger.debug)
 def make_size_report_pie(t, xAOD_Objects, directory="report"):
   total = {'totbytes': 0, 'filebytes': 0}
 
@@ -429,7 +429,7 @@ def make_size_report_pie(t, xAOD_Objects, directory="report"):
 
 
 #TODO: create it for each container as well automatically, this is for each type
-@echo(write=dumpSG_logger.debug)
+#@echo(write=dumpSG_logger.debug)
 def make_size_report(t, xAOD_Objects, directory="report"):
   total = {'totbytes': 0, 'filebytes': 0}
 
@@ -482,7 +482,7 @@ def make_size_report(t, xAOD_Objects, directory="report"):
 
   return True
 
-@echo(write=dumpSG_logger.debug)
+#@echo(write=dumpSG_logger.debug)
 def filter_xAOD_objects(xAOD_Objects, args):
   p_container_name = re.compile(fnmatch.translate(args.container_name_regex))
   p_container_type = re.compile(fnmatch.translate(args.container_type_regex))
@@ -491,14 +491,14 @@ def filter_xAOD_objects(xAOD_Objects, args):
   filtered_xAOD_Objects = {k:{prop:val for prop, val in v.iteritems() if (args.list_properties and prop=='prop') or (args.list_attributes and prop=='attr') or prop not in ['prop','attr']} for (k,v) in xAOD_Objects.iteritems() if p_container_name.match(k) and p_container_type.match(v['type']) and (not args.has_aux or v['has_aux']) }
   return filtered_xAOD_Objects
 
-@echo(write=dumpSG_logger.debug)
+#@echo(write=dumpSG_logger.debug)
 def update_sizes(xAOD_Objects):
   for ContainerName, Elements in xAOD_Objects.iteritems():
     Elements['totbytes'] += reduce(lambda a,d: a+d.get('totbytes', 0), Elements.get('prop', []) + Elements.get('attr', []), 0)
     Elements['filebytes'] += reduce(lambda a,d: a+d.get('filebytes', 0), Elements.get('prop', []) + Elements.get('attr', []), 0)
   return True
 
-@echo(write=dumpSG_logger.debug)
+#@echo(write=dumpSG_logger.debug)
 def dump_pretty(xAOD_Objects, f):
   currContainerType = ''
   # loop over all containers, sort by type
@@ -527,7 +527,7 @@ def dump_pretty(xAOD_Objects, f):
 
   f.write('  %s\n' % ('-'*20))
 
-@echo(write=dumpSG_logger.debug)
+#@echo(write=dumpSG_logger.debug)
 def dump_xAOD_objects(xAOD_Objects, args):
   # dumps object information given the structure output by inspect_tree()
   # NB: all sorting is done using lowercased strings because it's human-sorting
