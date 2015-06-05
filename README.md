@@ -9,8 +9,8 @@
     - [Understanding physical sizes of the containers](#understanding-physical-sizes-of-the-containers)
     - [[dumpSG.py](scripts/dumpSG.py)](#dumpsgpyscriptsdumpsgpy)
     - [Known Bugs](#known-bugs)
-  - [Authors](#authors)
-    - [Acknowledgements](#acknowledgements)
+- [Authors](#authors)
+  - [Acknowledgements](#acknowledgements)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -189,8 +189,8 @@ optional arguments:
 ### Known Bugs
 - HLT Jets and other objects that are typed `AuxByteStreamContainer` are not easily introspected
 
-## Authors
+# Authors
 - [Giordon Stark](https://github.com/kratsg)
 
-### Acknowledgements
+## Acknowledgements
 - Thanks to [David Miller](http://fizisist.web.cern.ch/fizisist/Welcome.html) for the comments, critiques, and extensive testing. And basically being a bad-ass.
