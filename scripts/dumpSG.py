@@ -164,6 +164,7 @@ def inspect_tree(t):
   xAOD_Type_Name = re.compile('^(vector<)?(.+?)(?(1)(?: ?>))$')
   xAOD_remove_version = re.compile('_v\d+')
   xAOD_Grab_Inner_Type = re.compile('<([^<>]*)>')
+  xAOD_DataVector_Type = re.compile('^DataVector<(.*?)>$')
 
   # call them elements, because there are 4 types inside the leaves
   elements = t.GetListOfLeaves()
@@ -182,15 +183,20 @@ def inspect_tree(t):
     m_cont_prop = xAOD_Container_Prop.search(elName)
     m_cont_attr = xAOD_Container_Attr.search(elName)
 
+    # filter out the elType
+    m_container_type_name = xAOD_DataVector_Type.search(elType)
+    if m_container_type_name:  # found a datavector type
+      elType, = m_container_type_name.groups()
+      elType += "Container"
+
     # get size information
     totbytes = el.GetBranch().GetTotalSize()
     filebytes = el.GetBranch().GetZipBytes()
 
-
     # set the type
     if m_aux_name:
       container, = m_aux_name.groups()
-      xAOD_Objects[container]['type'] = elType
+      #xAOD_Objects[container]['type'] = elType
       xAOD_Objects[container]['has_aux'] = True  # we found the aux for it
       xAOD_Objects[container]['rootname'] = elName
       # always add bytes to the parent container, regardless of what we're doing
