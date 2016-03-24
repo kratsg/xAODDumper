@@ -707,7 +707,7 @@ if __name__ == "__main__":
       dumpSG_logger.info("Initializing TChain")
       t = ROOT.TChain(args.tree_name)
       for fname in args.input_filename:
-        if not os.path.isfile(fname):
+        if not fname.startswith('root://') and not os.path.isfile(fname):
           raise ValueError('The supplied input file `{0}` does not exist or I cannot find it.'.format(fname))
         else:
           dumpSG_logger.info("\tAdding {0}".format(fname))
