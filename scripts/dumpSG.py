@@ -154,7 +154,7 @@ def inspect_tree(t):
   '''
 
   # list of properties and methods given Container Name
-  xAOD_Objects = defaultdict(lambda: {'prop': [], 'attr': [], 'type': None, 'has_aux': False, 'rootname': None, 'totbytes': 0, 'filebytes': 0})
+  xAOD_Objects = defaultdict(lambda: {'prop': [], 'attr': [], 'type': '', 'has_interface': False, 'has_aux': False, 'rootname': '', 'totbytes': 0, 'filebytes': 0})
 
   # lots of regex to pass things around and figure out structure
   xAOD_Container_Name = re.compile('^([^:]*)(?<!\.)$')
@@ -229,6 +229,7 @@ def inspect_tree(t):
       # initialize with defaults if not set already
       container, = m_cont_name.groups()
       xAOD_Objects[container]['type'] = xAOD_Objects[container]['type'] or elType
+      xAOD_Objects[container]['has_interface'] = True  # we found the interface
       xAOD_Objects[container]['rootname'] = xAOD_Objects[container]['rootname'] or elName
       # always add bytes to the parent container, regardless of what we're doing
       xAOD_Objects[container]['totbytes'] += totbytes
@@ -494,7 +495,10 @@ def filter_xAOD_objects(xAOD_Objects, args):
   p_container_type = re.compile(fnmatch.translate(args.container_type_regex))
 
   # Python Level: EXPERT MODE
-  filtered_xAOD_Objects = {k:{prop:val for prop, val in v.iteritems() if (args.list_properties and prop=='prop') or (args.list_attributes and prop=='attr') or prop not in ['prop','attr']} for (k,v) in xAOD_Objects.iteritems() if p_container_name.match(k) and p_container_type.match(v['type']) and (not args.has_aux or v['has_aux']) }
+  filtered_xAOD_Objects = {k:{prop:val for prop, val in v.iteritems() if (args.list_properties and prop=='prop') or (args.list_attributes and prop=='attr') or prop not in ['prop','attr']}
+                            for (k,v) in xAOD_Objects.iteritems()
+                            if p_container_name.match(k) and p_container_type.match(v['type']) and (not args.has_aux or v['has_aux']) and (not args.has_interface or v['has_interface'])
+                          }
   return filtered_xAOD_Objects
 
 #@echo(write=dumpSG_logger.debug)
@@ -617,6 +621,10 @@ if __name__ == "__main__":
                       dest='has_aux',
                       action='store_true',
                       help='Enable to only include containers which have an auxillary container. By default, it includes all containers it can find. Default: disabled')
+  parser.add_argument('--has_interface',
+                      dest='has_interface',
+                      action='store_true',
+                      help='Enable to only include containers which have an interface container. By default, it includes all containers it can find. Default: disabled')
   parser.add_argument('--prop',
                       dest='list_properties',
                       action='store_true',
