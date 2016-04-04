@@ -257,7 +257,12 @@ def save_plot(pathToImage, item, container, width=700, height=500, formats=['png
 
   tryToDraw = True
   htemp = None
+  dumpSG_logger.info("Trying to draw {0} of type {1}".format(item['name'], item['type']))
   if 'ElementLink' in item['type']:  # ElementLink type is more or less broken
+    dumpSG_logger.warning("{0} is an ElementLink type, so we will not draw it.".format(item['name']))
+    tryToDraw = False
+  if item['name'] in ['CaloCellETByLayer', 'CaloCellEnergyByLayer']:
+    dumpSG_logger.warning("{0} has issues with being drawn, so we will not draw it.".format(item['name']))
     tryToDraw = False
 
   if tryToDraw:
@@ -286,7 +291,7 @@ def save_plot(pathToImage, item, container, width=700, height=500, formats=['png
 
     # set log scale if htemp is drawable and the maximum/minimum is greater than tolerance
     if bool(counts_max/counts_min > logTolerance):
-      dumpSG_logger.info("Tolerance exceeded for {0}. Switching to log scale.".format(item['name']))
+      dumpSG_logger.info("\tTolerance exceeded for {0}. Switching to log scale.".format(item['name']))
     c.SetLogy(bool(counts_max/counts_min > logTolerance))
 
     #color the fill of the canvas based on various issues
@@ -320,10 +325,10 @@ def save_plot(pathToImage, item, container, width=700, height=500, formats=['png
     # let the user know that this has RMS=0 and may be of interest
     if rms == 0:
       dumpSG_logger.warning("{0}/{1} might be problematic (RMS=0)".format(container, item['name']))
-      dumpSG_logger.info("\tpath:\t\t{0}\n\tmean:\t\t{1}\n\trms:\t\t{2}\n\tentries:\t{3}".format(item['rootname'], item['mean'], item['rms'], item['entries']))
+      dumpSG_logger.info("\t\tpath:\t\t{0}\n\t\tmean:\t\t{1}\n\t\trms:\t\t{2}\n\t\tentries:\t{3}".format(item['rootname'], item['mean'], item['rms'], item['entries']))
   else:
     errString = "{0}/{1} {{0}}".format(container, item['name'])
-    detailErrString = "\tpath:\t\t{0}".format(item['rootname'])
+    detailErrString = "\t\tpath:\t\t{0}".format(item['rootname'])
     if 'ElementLink' in item['type']:
       # this is an example of what we can't draw normally
       dumpSG_logger.info(errString.format("is an ElementLink type"))
