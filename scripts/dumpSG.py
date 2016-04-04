@@ -234,6 +234,22 @@ def inspect_tree(t):
       # always add bytes to the parent container, regardless of what we're doing
       xAOD_Objects[container]['totbytes'] += totbytes
       xAOD_Objects[container]['filebytes'] += filebytes
+
+  missing_ifc = []
+  missing_aux = []
+  for k,v in xAOD_Objects.iteritems():
+    if v['has_interface'] == False and args.warn_missing_interface: missing_ifc.append(k)
+    if v['has_aux'] == False and args.warn_missing_auxillary: missing_aux.append(k)
+
+  if len(missing_ifc) > 0:
+    dumpSG_logger.warning("The following containers do not have an interface")
+    for k in missing_ifc: dumpSG_logger.warning("\t | {0}".format(k))
+    dumpSG_logger.warning("\t {0}".format("-"*40))
+  if len(missing_aux) > 0:
+    dumpSG_logger.warning("The following containers do not have an auxillary")
+    for k in missing_aux: dumpSG_logger.warning("\t | {0}".format(k))
+    dumpSG_logger.warning("\t {0}".format("-"*40))
+
   return xAOD_Objects
 
 #@echo(write=dumpSG_logger.debug)
@@ -625,6 +641,14 @@ if __name__ == "__main__":
                       dest='has_interface',
                       action='store_true',
                       help='Enable to only include containers which have an interface container. By default, it includes all containers it can find. Default: disabled')
+  parser.add_argument('--no_warn_missing_auxillary',
+                      dest='warn_missing_auxillary',
+                      action='store_true',
+                      help='Enable to turn on warnings for missing auxillary.')
+  parser.add_argument('--no_warn_missing_interface',
+                      dest='warn_missing_interface',
+                      action='store_false',
+                      help='Enable to turn off warnings for missing interface.')
   parser.add_argument('--prop',
                       dest='list_properties',
                       action='store_true',
