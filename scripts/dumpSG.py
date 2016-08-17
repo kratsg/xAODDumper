@@ -32,12 +32,6 @@ root_logger = logging.getLogger()
 root_logger.addHandler(logging.StreamHandler(STDOUT))
 dumpSG_logger = logging.getLogger("dumpSG")
 
-# First check if ROOTCOREDIR exists, implies ROOTCORE is set up
-try:
-  os.environ['ROOTCOREDIR']
-except KeyError:
-  raise OSError("It appears RootCore is not set up. Please set up RootCore and then try running me again. Hint: try running `rcSetup`")
-
 # import all libraries
 import argparse
 
@@ -735,10 +729,6 @@ if __name__ == "__main__":
 
       # if flag is shown, set batch_mode to true, else false
       ROOT.gROOT.SetBatch(args.batch_mode)
-
-      # load the xAOD EDM from RootCore and initialize
-      #ROOT.gROOT.Macro('$ROOTCOREDIR/scripts/load_packages.C')
-      #ROOT.xAOD.Init()
 
       # start by making a TChain
       dumpSG_logger.info("Initializing TChain")
