@@ -26,6 +26,15 @@ rc compile
 dumpSG.py <input file> *kwargs
 ```
 
+or
+
+```
+asetup AnalysisBase,21.2.0,here
+cmake ../src
+make
+dumpSG.py <input file> *kwargs
+```
+
 It has been tested on Rel19 xAODs, Rel20 xAODs, DxAODs, mc14, and mc15 datasets. That is literally amazing!
 
 ## Functionality Included
