@@ -2,7 +2,7 @@ title: xAOD Dumper
 description: Dump xAODs in a single bound!
 google_analytics: UA-56943050-3
 show_downloads: true
-theme: jekyll-theme-architect
+theme: jekyll-theme-hacker
 
 gems:
   - jekyll-mentions
