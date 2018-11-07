@@ -26,6 +26,15 @@ rc compile
 dumpSG.py <input file> *kwargs
 ```
 
+or
+
+```
+asetup AnalysisBase,21.2.0,here
+cmake ../src
+make
+dumpSG.py <input file> *kwargs
+```
+
 It has been tested on Rel19 xAODs, Rel20 xAODs, DxAODs, mc14, and mc15 datasets. That is literally amazing!
 
 ## Functionality Included
@@ -146,6 +155,13 @@ optional arguments:
   --has_aux             Enable to only include containers which have an
                         auxillary container. By default, it includes all
                         containers it can find. Default: disabled
+  --has_interface       Enable to only include containers which have an
+                        interface container. By default, it includes all
+                        containers it can find. Default: disabled
+  --no_warn_missing_auxillary
+                        Enable to turn on warnings for missing auxillary.
+  --no_warn_missing_interface
+                        Enable to turn off warnings for missing interface.
   --prop                Enable to print properties of container. By default,
                         it only prints the xAOD::ContainerType and containers
                         for that given type. This is like an increased
